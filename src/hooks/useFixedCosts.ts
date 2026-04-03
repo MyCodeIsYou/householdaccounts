@@ -1,20 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/context/AuthContext'
+import { useHouseholdFilter } from '@/hooks/useHouseholdFilter'
 import type { FixedCost, FixedCostRecord } from '@/types'
 
 export function useFixedCosts(year: number, month: number) {
-  const { user } = useAuth()
+  const { user, scopeKey, applyFilter, insertScope } = useHouseholdFilter()
   const qc = useQueryClient()
 
   const costsQuery = useQuery({
-    queryKey: ['fixed-costs', user?.id],
+    queryKey: ['fixed-costs', scopeKey],
     queryFn: async () => {
       if (!user) return []
-      const { data, error } = await supabase
-        .from('fixed_costs')
-        .select('*')
-        .eq('user_id', user.id)
+      const { data, error } = await applyFilter(
+        supabase.from('fixed_costs').select('*')
+      )
         .eq('is_active', true)
         .order('created_at', { ascending: true })
       if (error) throw error
@@ -24,13 +23,12 @@ export function useFixedCosts(year: number, month: number) {
   })
 
   const recordsQuery = useQuery({
-    queryKey: ['fixed-cost-records', user?.id, year, month],
+    queryKey: ['fixed-cost-records', scopeKey, year, month],
     queryFn: async () => {
       if (!user) return []
-      const { data, error } = await supabase
-        .from('fixed_cost_records')
-        .select('*')
-        .eq('user_id', user.id)
+      const { data, error } = await applyFilter(
+        supabase.from('fixed_cost_records').select('*')
+      )
         .eq('record_year', year)
         .eq('record_month', month)
       if (error) throw error
@@ -42,10 +40,10 @@ export function useFixedCosts(year: number, month: number) {
   const addCost = useMutation({
     mutationFn: async (payload: Omit<FixedCost, 'id' | 'user_id' | 'created_at'>) => {
       if (!user) throw new Error('로그인이 필요합니다')
-      const { error } = await supabase.from('fixed_costs').insert({ ...payload, user_id: user.id })
+      const { error } = await supabase.from('fixed_costs').insert({ ...payload, ...insertScope })
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['fixed-costs', user?.id] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['fixed-costs', scopeKey] }),
   })
 
   const updateCost = useMutation({
@@ -53,7 +51,7 @@ export function useFixedCosts(year: number, month: number) {
       const { error } = await supabase.from('fixed_costs').update(payload).eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['fixed-costs', user?.id] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['fixed-costs', scopeKey] }),
   })
 
   const removeCost = useMutation({
@@ -61,7 +59,7 @@ export function useFixedCosts(year: number, month: number) {
       const { error } = await supabase.from('fixed_costs').update({ is_active: false }).eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['fixed-costs', user?.id] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['fixed-costs', scopeKey] }),
   })
 
   const markPaid = useMutation({
@@ -79,7 +77,7 @@ export function useFixedCosts(year: number, month: number) {
       if (!user) throw new Error('로그인이 필요합니다')
       const existing = recordsQuery.data?.find(r => r.fixed_cost_id === fixedCostId)
       const payload = {
-        user_id: user.id,
+        ...insertScope,
         fixed_cost_id: fixedCostId,
         record_year: year,
         record_month: month,
@@ -97,7 +95,7 @@ export function useFixedCosts(year: number, month: number) {
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['fixed-cost-records', user?.id, year, month] })
+      qc.invalidateQueries({ queryKey: ['fixed-cost-records', scopeKey, year, month] })
       qc.invalidateQueries({ queryKey: ['transactions'] })
     },
   })

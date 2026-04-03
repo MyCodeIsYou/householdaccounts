@@ -123,25 +123,25 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-4">
       {/* 필터 바 */}
-      <div className="flex flex-wrap gap-3 items-end">
+      <div className="bg-white rounded-2xl card-shadow p-4 flex flex-wrap gap-3 items-end">
         <div>
-          <Label className="text-xs">연도</Label>
+          <Label className="text-xs text-gray-500 font-medium">연도</Label>
           <Select value={String(filterYear)} onValueChange={v => setFilterYear(Number(v))}>
-            <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-24 rounded-xl"><SelectValue /></SelectTrigger>
             <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}년</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div>
-          <Label className="text-xs">월</Label>
+          <Label className="text-xs text-gray-500 font-medium">월</Label>
           <Select value={String(filterMonth)} onValueChange={v => setFilterMonth(Number(v))}>
-            <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-20 rounded-xl"><SelectValue /></SelectTrigger>
             <SelectContent>{months.map(m => <SelectItem key={m} value={String(m)}>{m}월</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div>
-          <Label className="text-xs">구분</Label>
+          <Label className="text-xs text-gray-500 font-medium">구분</Label>
           <Select value={filterType} onValueChange={v => setFilterType(v as TransactionFilters['type'])}>
-            <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-24 rounded-xl"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">전체</SelectItem>
               <SelectItem value="income">수입</SelectItem>
@@ -151,10 +151,10 @@ export default function TransactionsPage() {
           </Select>
         </div>
         <div className="flex-1 min-w-40">
-          <Label className="text-xs">검색 (메모)</Label>
-          <Input placeholder="검색어 입력" value={keyword} onChange={e => setKeyword(e.target.value)} />
+          <Label className="text-xs text-gray-500 font-medium">검색 (메모)</Label>
+          <Input placeholder="검색어 입력" value={keyword} onChange={e => setKeyword(e.target.value)} className="rounded-xl" />
         </div>
-        <Button onClick={openAdd}>
+        <Button onClick={openAdd} className="rounded-xl gradient-primary text-white border-0 shadow-sm hover:opacity-90">
           <Plus className="h-4 w-4" />
           거래 추가
         </Button>
@@ -163,56 +163,59 @@ export default function TransactionsPage() {
       {/* 합계 요약 */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: '수입', value: totalIncome, cls: 'text-green-600' },
-          { label: '지출', value: totalExpense, cls: 'text-red-600' },
-          { label: '잔액', value: totalIncome - totalExpense, cls: 'text-primary' },
-        ].map(({ label, value, cls }) => (
-          <div key={label} className="bg-white rounded-lg border p-4">
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p className={`text-xl font-bold ${cls}`}>{formatCurrency(value, true)}</p>
+          { label: '수입', value: totalIncome, textCls: 'text-emerald-600', dotCls: 'bg-emerald-400' },
+          { label: '지출', value: totalExpense, textCls: 'text-rose-500', dotCls: 'bg-rose-400' },
+          { label: '잔액', value: totalIncome - totalExpense, textCls: 'text-indigo-600', dotCls: 'bg-indigo-400' },
+        ].map(({ label, value, textCls, dotCls }) => (
+          <div key={label} className="bg-white rounded-2xl card-shadow p-4 flex items-center gap-3">
+            <div className={`w-2.5 h-2.5 rounded-full ${dotCls} shrink-0`} />
+            <div>
+              <p className="text-xs text-gray-500 font-medium">{label}</p>
+              <p className={`text-xl font-bold ${textCls}`}>{formatCurrency(value, true)}</p>
+            </div>
           </div>
         ))}
       </div>
 
       {/* 거래 테이블 */}
-      <div className="bg-white rounded-lg border">
+      <div className="bg-white rounded-2xl card-shadow overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>날짜</TableHead>
-              <TableHead>구분</TableHead>
-              <TableHead>카테고리</TableHead>
-              <TableHead>금액</TableHead>
-              <TableHead>결제방법</TableHead>
-              <TableHead>메모</TableHead>
+            <TableRow className="bg-gray-50 border-b border-gray-100">
+              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">날짜</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">구분</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">카테고리</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">금액</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">결제방법</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">메모</TableHead>
               <TableHead className="w-20"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {transactions.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
+                <TableCell colSpan={7} className="text-center text-gray-400 py-16">
                   거래 내역이 없습니다
                 </TableCell>
               </TableRow>
             )}
             {transactions.map(t => (
-              <TableRow key={t.id}>
-                <TableCell className="text-sm">{formatDateKo(t.txn_date)}</TableCell>
+              <TableRow key={t.id} className="hover:bg-gray-50 transition-colors">
+                <TableCell className="text-sm text-gray-600">{formatDateKo(t.txn_date)}</TableCell>
                 <TableCell>
                   <Badge variant={t.type === 'income' ? 'income' : t.type === 'expense' ? 'expense' : 'secondary'}>
                     {t.type === 'income' ? '수입' : t.type === 'expense' ? '지출' : '이체'}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-sm">
+                <TableCell className="text-sm text-gray-700">
                   {t.category?.name ?? '—'}
-                  {t.subcategory && <span className="text-muted-foreground"> / {t.subcategory.name}</span>}
+                  {t.subcategory && <span className="text-gray-400"> / {t.subcategory.name}</span>}
                 </TableCell>
-                <TableCell className={`font-medium ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                <TableCell className={`font-semibold ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-500'}`}>
                   {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{t.payment_method ?? '—'}</TableCell>
-                <TableCell className="text-sm text-muted-foreground max-w-[180px] truncate">{t.memo ?? '—'}</TableCell>
+                <TableCell className="text-sm text-gray-400">{t.payment_method ?? '—'}</TableCell>
+                <TableCell className="text-sm text-gray-400 max-w-[180px] truncate">{t.memo ?? '—'}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}>

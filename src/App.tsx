@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/context/AuthContext'
+import { HouseholdProvider } from '@/context/HouseholdContext'
 import AppRouter from '@/router/index'
 
 const queryClient = new QueryClient({
@@ -15,7 +16,9 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AppRouter />
+        <HouseholdProvider>
+          <AppRouter />
+        </HouseholdProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

@@ -1,22 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/context/AuthContext'
+import { useHouseholdFilter } from '@/hooks/useHouseholdFilter'
 import type { AnnualPlan, MonthKey } from '@/types'
 import { MONTH_KEYS } from '@/lib/constants'
 
 export function useAnnualPlan(year: number) {
-  const { user } = useAuth()
+  const { user, scopeKey, applyFilter, insertScope } = useHouseholdFilter()
   const qc = useQueryClient()
 
   const planQuery = useQuery({
-    queryKey: ['annual-plan', user?.id, year],
+    queryKey: ['annual-plan', scopeKey, year],
     queryFn: async () => {
       if (!user) return []
-      const { data, error } = await supabase
-        .from('annual_plan')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('plan_year', year)
+      const { data, error } = await applyFilter(
+        supabase.from('annual_plan').select('*')
+      ).eq('plan_year', year)
       if (error) throw error
       return (data ?? []) as AnnualPlan[]
     },
@@ -25,13 +23,12 @@ export function useAnnualPlan(year: number) {
 
   // 실적: transactions에서 연도별 카테고리+월 집계
   const actualQuery = useQuery({
-    queryKey: ['annual-plan-actual', user?.id, year],
+    queryKey: ['annual-plan-actual', scopeKey, year],
     queryFn: async () => {
       if (!user) return []
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('category_id, txn_date, amount, type')
-        .eq('user_id', user.id)
+      const { data, error } = await applyFilter(
+        supabase.from('transactions').select('category_id, txn_date, amount, type')
+      )
         .gte('txn_date', `${year}-01-01`)
         .lte('txn_date', `${year}-12-31`)
         .in('type', ['income', 'expense'])
@@ -73,7 +70,7 @@ export function useAnnualPlan(year: number) {
         if (error) throw error
       } else {
         const newRow: Partial<AnnualPlan> = {
-          user_id: user.id,
+          ...insertScope,
           plan_year: year,
           category_id: categoryId,
           ...Object.fromEntries(MONTH_KEYS.map(k => [k, 0])),
@@ -83,7 +80,7 @@ export function useAnnualPlan(year: number) {
         if (error) throw error
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['annual-plan', user?.id, year] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['annual-plan', scopeKey, year] }),
   })
 
   return {

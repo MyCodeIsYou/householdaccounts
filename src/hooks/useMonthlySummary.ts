@@ -1,19 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/context/AuthContext'
+import { useHouseholdFilter } from '@/hooks/useHouseholdFilter'
 import type { MonthlySummary } from '@/types'
 
 export function useMonthlySummary(year: number) {
-  const { user } = useAuth()
+  const { user, scopeKey, applyFilter } = useHouseholdFilter()
 
   return useQuery({
-    queryKey: ['monthly-summary', user?.id, year],
+    queryKey: ['monthly-summary', scopeKey, year],
     queryFn: async (): Promise<MonthlySummary[]> => {
       if (!user) return []
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('txn_date, type, amount')
-        .eq('user_id', user.id)
+      const { data, error } = await applyFilter(
+        supabase.from('transactions').select('txn_date, type, amount')
+      )
         .gte('txn_date', `${year}-01-01`)
         .lte('txn_date', `${year}-12-31`)
         .in('type', ['income', 'expense'])

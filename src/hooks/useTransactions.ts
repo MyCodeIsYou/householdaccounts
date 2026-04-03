@@ -1,26 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { endOfMonth, format } from 'date-fns'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/context/AuthContext'
+import { useHouseholdFilter } from '@/hooks/useHouseholdFilter'
 import type { Transaction, TransactionInsert, TransactionUpdate, TransactionFilters } from '@/types'
 
 export function useTransactions(filters: TransactionFilters = {}) {
-  const { user } = useAuth()
+  const { user, scopeKey, applyFilter, insertScope } = useHouseholdFilter()
   const qc = useQueryClient()
 
   const query = useQuery({
-    queryKey: ['transactions', user?.id, filters],
+    queryKey: ['transactions', scopeKey, filters],
     queryFn: async () => {
       if (!user) return []
-      let q = supabase
-        .from('transactions')
-        .select(`
+      let q = applyFilter(
+        supabase.from('transactions').select(`
           *,
           category:categories!transactions_category_id_fkey(id, name, type, plan_group),
           subcategory:categories!transactions_subcategory_id_fkey(id, name, type, plan_group),
           account:accounts(id, bank_name, label),
           card:cards(id, card_name, card_company)
         `)
-        .eq('user_id', user.id)
+      )
 
       if (filters.type && filters.type !== 'all') q = q.eq('type', filters.type)
       if (filters.category_id) q = q.eq('category_id', filters.category_id)
@@ -31,7 +31,8 @@ export function useTransactions(filters: TransactionFilters = {}) {
       if (filters.year && filters.month) {
         const y = filters.year
         const m = String(filters.month).padStart(2, '0')
-        q = q.gte('txn_date', `${y}-${m}-01`).lte('txn_date', `${y}-${m}-31`)
+        const lastDay = format(endOfMonth(new Date(y, filters.month - 1, 1)), 'yyyy-MM-dd')
+        q = q.gte('txn_date', `${y}-${m}-01`).lte('txn_date', lastDay)
       } else if (filters.year) {
         q = q.gte('txn_date', `${filters.year}-01-01`).lte('txn_date', `${filters.year}-12-31`)
       }
@@ -49,7 +50,7 @@ export function useTransactions(filters: TransactionFilters = {}) {
   const add = useMutation({
     mutationFn: async (payload: TransactionInsert) => {
       if (!user) throw new Error('로그인이 필요합니다')
-      const { error } = await supabase.from('transactions').insert({ ...payload, user_id: user.id })
+      const { error } = await supabase.from('transactions').insert({ ...payload, ...insertScope })
       if (error) throw error
     },
     onSuccess: () => {

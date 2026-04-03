@@ -3,7 +3,6 @@ import { useFixedCosts } from '@/hooks/useFixedCosts'
 import { useCategories } from '@/hooks/useCategories'
 import { useCards } from '@/hooks/useCards'
 import { useTransactions } from '@/hooks/useTransactions'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -144,124 +143,122 @@ export default function FixedCostsPage() {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div className="flex flex-wrap gap-3 items-end justify-between">
+      <div className="bg-white rounded-2xl card-shadow p-4 flex flex-wrap gap-3 items-end justify-between">
         <div className="flex gap-3 items-end">
           <div>
-            <Label className="text-xs">연도</Label>
+            <Label className="text-xs text-gray-500 font-medium">연도</Label>
             <Select value={String(year)} onValueChange={v => setYear(Number(v))}>
-              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-28 rounded-xl"><SelectValue /></SelectTrigger>
               <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}년</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div>
-            <Label className="text-xs">월</Label>
+            <Label className="text-xs text-gray-500 font-medium">월</Label>
             <Select value={String(month)} onValueChange={v => setMonth(Number(v))}>
-              <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-20 rounded-xl"><SelectValue /></SelectTrigger>
               <SelectContent>{months.map(m => <SelectItem key={m} value={String(m)}>{m}월</SelectItem>)}</SelectContent>
             </Select>
           </div>
         </div>
-        <Button onClick={openAdd}><Plus className="h-4 w-4" />고정비 추가</Button>
+        <Button onClick={openAdd} className="rounded-xl gradient-primary text-white border-0 shadow-sm hover:opacity-90"><Plus className="h-4 w-4" />고정비 추가</Button>
       </div>
 
       {/* 요약 */}
       <div className="grid grid-cols-3 gap-4">
-        <Card><CardContent className="p-4">
-          <p className="text-xs text-muted-foreground">총 고정비</p>
-          <p className="text-xl font-bold">{formatCurrency(totalExpected)}</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4">
-          <p className="text-xs text-muted-foreground">납부 완료</p>
-          <p className="text-xl font-bold text-green-600">{paidCount} / {costs.length}건</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4">
-          <p className="text-xs text-muted-foreground">미납 예상금액</p>
-          <p className="text-xl font-bold text-orange-600">
+        <div className="bg-white rounded-2xl card-shadow p-5">
+          <p className="text-xs text-gray-500 font-medium mb-1">총 고정비</p>
+          <p className="text-xl font-bold text-gray-800">{formatCurrency(totalExpected)}</p>
+        </div>
+        <div className="bg-white rounded-2xl card-shadow p-5">
+          <p className="text-xs text-gray-500 font-medium mb-1">납부 완료</p>
+          <p className="text-xl font-bold text-emerald-600">{paidCount} / {costs.length}건</p>
+        </div>
+        <div className="bg-white rounded-2xl card-shadow p-5">
+          <p className="text-xs text-gray-500 font-medium mb-1">미납 예상금액</p>
+          <p className="text-xl font-bold text-orange-500">
             {formatCurrency(costs
               .filter(c => !records.find(r => r.fixed_cost_id === c.id && r.is_paid))
               .reduce((s, c) => s + c.expected_amount, 0)
             )}
           </p>
-        </CardContent></Card>
+        </div>
       </div>
 
       {/* 고정비 목록 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{MONTH_LABELS[month - 1]} 고정비 현황</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left px-4 py-2 font-semibold">항목</th>
-                  <th className="px-3 py-2 text-center">카테고리</th>
-                  <th className="px-3 py-2 text-right">예상금액</th>
-                  <th className="px-3 py-2 text-center">결제일</th>
-                  <th className="px-3 py-2 text-center">결제방법</th>
-                  <th className="px-3 py-2 text-center">상태</th>
-                  <th className="px-3 py-2 text-center">관리</th>
-                </tr>
-              </thead>
-              <tbody>
-                {costs.length === 0 && (
-                  <tr><td colSpan={7} className="text-center text-muted-foreground py-10">등록된 고정비가 없습니다</td></tr>
-                )}
-                {costs.map(cost => {
-                  const record = records.find(r => r.fixed_cost_id === cost.id)
-                  const isPaid = record?.is_paid ?? false
-                  return (
-                    <tr key={cost.id} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">{cost.name}</td>
-                      <td className="px-3 py-3 text-center">
-                        <Badge variant="secondary" className="text-xs">
-                          {categories.find(c => c.id === cost.category_id)?.name ?? '—'}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-3 text-right">{formatCurrency(cost.expected_amount)}</td>
-                      <td className="px-3 py-3 text-center text-muted-foreground">
-                        {cost.billing_day ? `${cost.billing_day}일` : '—'}
-                      </td>
-                      <td className="px-3 py-3 text-center text-muted-foreground">{cost.payment_method ?? '—'}</td>
-                      <td className="px-3 py-3 text-center">
-                        <button onClick={() => !isPaid && openPay(cost)} className="inline-flex items-center gap-1 text-sm">
-                          {isPaid
-                            ? <><CheckCircle2 className="h-4 w-4 text-green-600" /><span className="text-green-600">납부완료</span></>
-                            : <><Circle className="h-4 w-4 text-gray-400" /><span className="text-gray-500">미납</span></>
-                          }
-                        </button>
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        <div className="flex gap-1 justify-center">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cost)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>{cost.name}을 삭제하시겠습니까?</AlertDialogTitle>
-                                <AlertDialogDescription>이 작업은 되돌릴 수 없습니다.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>취소</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => removeCost.mutate(cost.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">삭제</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="bg-white rounded-2xl card-shadow overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-800">{MONTH_LABELS[month - 1]} 고정비 현황</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">항목</th>
+                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">카테고리</th>
+                <th className="px-3 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">예상금액</th>
+                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">결제일</th>
+                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">결제방법</th>
+                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">상태</th>
+                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {costs.length === 0 && (
+                <tr><td colSpan={7} className="text-center text-gray-400 py-12">등록된 고정비가 없습니다</td></tr>
+              )}
+              {costs.map(cost => {
+                const record = records.find(r => r.fixed_cost_id === cost.id)
+                const isPaid = record?.is_paid ?? false
+                return (
+                  <tr key={cost.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-gray-800">{cost.name}</td>
+                    <td className="px-3 py-3 text-center">
+                      <Badge variant="secondary" className="text-xs rounded-lg bg-gray-100 text-gray-600">
+                        {categories.find(c => c.id === cost.category_id)?.name ?? '—'}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-3 text-right font-medium text-gray-700">{formatCurrency(cost.expected_amount)}</td>
+                    <td className="px-3 py-3 text-center text-gray-400">
+                      {cost.billing_day ? `${cost.billing_day}일` : '—'}
+                    </td>
+                    <td className="px-3 py-3 text-center text-gray-400">{cost.payment_method ?? '—'}</td>
+                    <td className="px-3 py-3 text-center">
+                      <button onClick={() => !isPaid && openPay(cost)} className="inline-flex items-center gap-1 text-sm">
+                        {isPaid
+                          ? <><CheckCircle2 className="h-4 w-4 text-emerald-500" /><span className="text-emerald-600 font-medium">납부완료</span></>
+                          : <><Circle className="h-4 w-4 text-gray-300" /><span className="text-gray-500">미납</span></>
+                        }
+                      </button>
+                    </td>
+                    <td className="px-3 py-3 text-center">
+                      <div className="flex gap-1 justify-center">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-700" onClick={() => openEdit(cost)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>{cost.name}을 삭제하시겠습니까?</AlertDialogTitle>
+                              <AlertDialogDescription>이 작업은 되돌릴 수 없습니다.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>취소</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => removeCost.mutate(cost.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">삭제</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* 고정비 추가/수정 다이얼로그 */}
       <Dialog open={open} onOpenChange={setOpen}>

@@ -20,7 +20,6 @@ CREATE TABLE transactions (
 );
 
 CREATE INDEX idx_txn_user_date   ON transactions(user_id, txn_date DESC);
-CREATE INDEX idx_txn_user_month  ON transactions(user_id, DATE_TRUNC('month', txn_date));
 CREATE INDEX idx_txn_category    ON transactions(user_id, category_id);
 CREATE INDEX idx_txn_allowance   ON transactions(user_id, is_allowance) WHERE is_allowance = TRUE;
 CREATE INDEX idx_txn_card        ON transactions(user_id, card_id) WHERE card_id IS NOT NULL;

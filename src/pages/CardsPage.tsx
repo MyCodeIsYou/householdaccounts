@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useCards } from '@/hooks/useCards'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useCategories } from '@/hooks/useCategories'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -72,27 +71,29 @@ export default function CardsPage() {
     <div className="space-y-6">
       {/* 카드 목록 */}
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">등록된 카드</h2>
-        <Button onClick={openAdd}><Plus className="h-4 w-4" />카드 추가</Button>
+        <h2 className="text-sm font-semibold text-gray-700">등록된 카드 ({cards.length})</h2>
+        <Button onClick={openAdd} className="rounded-xl gradient-primary text-white border-0 shadow-sm hover:opacity-90"><Plus className="h-4 w-4" />카드 추가</Button>
       </div>
 
       <div className="flex flex-wrap gap-3">
         {cards.length === 0 && (
-          <div className="text-sm text-muted-foreground py-4">등록된 카드가 없습니다.</div>
+          <div className="text-sm text-gray-400 py-4">등록된 카드가 없습니다.</div>
         )}
         {cards.map(c => (
           <div
             key={c.id}
-            className={`relative rounded-xl border-2 p-4 cursor-pointer transition-all w-52 ${selectedCardId === c.id ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'}`}
+            className={`relative rounded-2xl border-2 p-4 cursor-pointer transition-all w-52 ${selectedCardId === c.id ? 'border-indigo-400 bg-indigo-50/60 card-shadow' : 'border-gray-100 bg-white card-shadow hover:border-indigo-200'}`}
             onClick={() => setSelectedCardId(selectedCardId === c.id ? null : c.id)}
           >
-            <CreditCard className="h-6 w-6 text-primary mb-2" />
-            <p className="font-semibold text-sm">{c.card_name}</p>
-            <p className="text-xs text-muted-foreground">{c.card_company}</p>
-            {c.last4 && <p className="text-xs text-muted-foreground mt-1">•••• {c.last4}</p>}
-            {c.billing_day && <p className="text-xs text-muted-foreground">결제일: 매월 {c.billing_day}일</p>}
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${selectedCardId === c.id ? 'gradient-primary' : 'bg-gray-100'}`}>
+              <CreditCard className={`h-5 w-5 ${selectedCardId === c.id ? 'text-white' : 'text-gray-500'}`} />
+            </div>
+            <p className="font-semibold text-sm text-gray-800">{c.card_name}</p>
+            <p className="text-xs text-gray-500">{c.card_company}</p>
+            {c.last4 && <p className="text-xs text-gray-400 mt-1">•••• {c.last4}</p>}
+            {c.billing_day && <p className="text-xs text-gray-400">결제일: 매월 {c.billing_day}일</p>}
             <div className="flex gap-1 mt-3">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); openEdit(c) }}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-gray-700" onClick={e => { e.stopPropagation(); openEdit(c) }}>
                 <Pencil className="h-3 w-3" />
               </Button>
               <AlertDialog>
@@ -119,54 +120,52 @@ export default function CardsPage() {
 
       {/* 카드별 거래 내역 */}
       {selectedCardId && (
-        <Card>
-          <CardHeader>
+        <div className="bg-white rounded-2xl card-shadow overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
             <div className="flex items-center justify-between flex-wrap gap-3">
-              <CardTitle className="text-base">
-                {cards.find(c => c.id === selectedCardId)?.card_name} 내역
-              </CardTitle>
+              <div>
+                <h3 className="font-semibold text-gray-800">{cards.find(c => c.id === selectedCardId)?.card_name} 내역</h3>
+                <p className="text-xs text-gray-400 mt-0.5">이달 사용액: <span className="font-bold text-rose-500">{formatCurrency(totalExpense)}</span></p>
+              </div>
               <div className="flex gap-2 items-center">
                 <Select value={String(filterYear)} onValueChange={v => setFilterYear(Number(v))}>
-                  <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-24 rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}년</SelectItem>)}</SelectContent>
                 </Select>
                 <Select value={String(filterMonth)} onValueChange={v => setFilterMonth(Number(v))}>
-                  <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-20 rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent>{months.map(m => <SelectItem key={m} value={String(m)}>{m}월</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">이달 사용액: <span className="font-bold text-primary">{formatCurrency(totalExpense)}</span></p>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>날짜</TableHead>
-                  <TableHead>카테고리</TableHead>
-                  <TableHead>금액</TableHead>
-                  <TableHead>메모</TableHead>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50 border-b border-gray-100">
+                <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">날짜</TableHead>
+                <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">카테고리</TableHead>
+                <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">금액</TableHead>
+                <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">메모</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transactions.length === 0 && (
+                <TableRow><TableCell colSpan={4} className="text-center text-gray-400 py-10">이달 카드 내역이 없습니다</TableCell></TableRow>
+              )}
+              {transactions.map(t => (
+                <TableRow key={t.id} className="hover:bg-gray-50 transition-colors">
+                  <TableCell className="text-sm text-gray-600">{formatDateKo(t.txn_date)}</TableCell>
+                  <TableCell>
+                    <span className="text-sm text-gray-700">{getCategoryName(t.category_id)}</span>
+                    {t.subcategory_id && <span className="text-xs text-gray-400 ml-1">/ {getCategoryName(t.subcategory_id)}</span>}
+                  </TableCell>
+                  <TableCell className="font-semibold text-rose-500">{formatCurrency(t.amount)}</TableCell>
+                  <TableCell className="text-sm text-gray-400">{t.memo ?? '—'}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.length === 0 && (
-                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">이달 카드 내역이 없습니다</TableCell></TableRow>
-                )}
-                {transactions.map(t => (
-                  <TableRow key={t.id}>
-                    <TableCell className="text-sm">{formatDateKo(t.txn_date)}</TableCell>
-                    <TableCell>
-                      <span className="text-sm">{getCategoryName(t.category_id)}</span>
-                      {t.subcategory_id && <span className="text-xs text-muted-foreground ml-1">/ {getCategoryName(t.subcategory_id)}</span>}
-                    </TableCell>
-                    <TableCell className="font-medium text-red-600">{formatCurrency(t.amount)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{t.memo ?? '—'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       {/* 카드 추가/수정 다이얼로그 */}

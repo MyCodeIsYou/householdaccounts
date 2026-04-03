@@ -3,6 +3,77 @@ export type UUID = string
 export type ISODate = string         // "2024-03-15"
 export type ISOTimestamp = string    // "2024-03-15T09:00:00Z"
 
+// ─── 앱 권한 ─────────────────────────────────────────────────────────────────
+export type AppRole = 'super_admin' | 'admin' | 'user'
+
+// ─── 그룹(가계부 공유 단위) ───────────────────────────────────────────────────
+export type HouseholdRole = 'owner' | 'member'
+
+export interface Household {
+  id: UUID
+  name: string
+  owner_id: UUID
+  created_at: ISOTimestamp
+}
+
+export interface HouseholdMember {
+  id: UUID
+  household_id: UUID
+  user_id: UUID
+  role: HouseholdRole
+  joined_at: ISOTimestamp
+  profile?: { id: UUID; display_name: string | null }
+}
+
+export interface HouseholdInvite {
+  id: UUID
+  household_id: UUID
+  token: string
+  created_by: UUID
+  expires_at: ISOTimestamp
+  used_count: number
+  max_uses: number
+  is_active: boolean
+  created_at: ISOTimestamp
+}
+
+export interface Profile {
+  id: UUID
+  display_name: string | null
+  app_role: AppRole
+  created_at: ISOTimestamp
+}
+
+// ─── 관리자 전용 ──────────────────────────────────────────────────────────────
+export interface AdminUserMembership {
+  household_id: UUID
+  household_name: string
+  role: HouseholdRole
+  joined_at: ISOTimestamp
+}
+
+export interface AdminUser {
+  id: UUID
+  email: string
+  display_name: string | null
+  app_role: AppRole
+  created_at: ISOTimestamp
+  household_memberships: AdminUserMembership[]
+}
+
+// ─── 메뉴 설정 ────────────────────────────────────────────────────────────────
+export interface MenuConfig {
+  id: UUID
+  menu_key: string
+  label: string
+  path: string
+  icon_name: string
+  min_role: AppRole
+  is_enabled: boolean
+  display_order: number
+  updated_at: ISOTimestamp
+}
+
 // ─── 계좌 ────────────────────────────────────────────────────────────────────
 export type AccountType =
   | '입출금' | '예금' | '적금' | '증권' | '연금' | 'CMA' | '외화' | '기타'
@@ -10,6 +81,7 @@ export type AccountType =
 export interface Account {
   id: UUID
   user_id: UUID
+  household_id?: UUID | null
   bank_name: string
   account_type: AccountType
   label: string | null
@@ -28,6 +100,7 @@ export type AccountUpdate = Partial<AccountInsert>
 export interface AssetSnapshot {
   id: UUID
   user_id: UUID
+  household_id?: UUID | null
   snapshot_date: ISODate
   total_amount: number
   created_at: ISOTimestamp
@@ -54,6 +127,7 @@ export type PaymentMethod = '현금' | '카드' | '계좌이체' | '자동이체
 export interface Card {
   id: UUID
   user_id: UUID
+  household_id?: UUID | null
   card_name: string
   card_company: string
   last4: string | null
@@ -66,6 +140,7 @@ export interface Card {
 export interface Transaction {
   id: UUID
   user_id: UUID
+  household_id?: UUID | null
   txn_date: ISODate
   type: TransactionType
   category_id: UUID | null
@@ -96,6 +171,7 @@ export type MonthKey = 'jan'|'feb'|'mar'|'apr'|'may'|'jun'|'jul'|'aug'|'sep'|'oc
 export interface AnnualPlan {
   id: UUID
   user_id: UUID
+  household_id?: UUID | null
   plan_year: number
   category_id: UUID
   jan: number; feb: number; mar: number; apr: number
@@ -117,6 +193,7 @@ export interface PlanRow {
 export interface FixedCost {
   id: UUID
   user_id: UUID
+  household_id?: UUID | null
   name: string
   category_id: UUID | null
   expected_amount: number
@@ -130,6 +207,7 @@ export interface FixedCost {
 export interface FixedCostRecord {
   id: UUID
   user_id: UUID
+  household_id?: UUID | null
   fixed_cost_id: UUID
   record_year: number
   record_month: number
