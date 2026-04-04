@@ -17,6 +17,8 @@ const pageTitles: Record<string, { title: string; desc: string }> = {
   '/profile':         { title: '내 프로필',         desc: '표시 이름 및 계정 정보 관리' },
   '/admin/users':     { title: '사용자 관리',        desc: '앱 사용자 및 권한 관리' },
   '/admin/menus':     { title: '메뉴 관리',          desc: '내비게이션 메뉴 표시 설정' },
+  '/admin/banks':     { title: '은행/계좌 종류 관리', desc: '은행·기관 및 계좌 종류 설정' },
+  '/support':         { title: '고객센터',           desc: '1:1 문의 및 답변 확인' },
 }
 
 export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {

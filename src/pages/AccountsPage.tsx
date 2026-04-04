@@ -2,24 +2,25 @@ import { useState } from 'react'
 import { useAccounts } from '@/hooks/useAccounts'
 import { useCategories } from '@/hooks/useCategories'
 import { useAssetSnapshots } from '@/hooks/useAssetSnapshots'
+import { useBankInstitutions } from '@/hooks/useBankInstitutions'
+import { useAccountTypes } from '@/hooks/useAccountTypes'
+import { useDragScroll } from '@/hooks/useDragScroll'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Pencil, Trash2, Building2, History, TrendingUp, CalendarPlus } from 'lucide-react'
+import { Plus, Pencil, Trash2, Building2, History, TrendingUp, CalendarPlus, Wallet } from 'lucide-react'
 import { formatCurrency, parseAmountInput } from '@/lib/utils'
-import { ACCOUNT_TYPES, BANK_NAMES } from '@/lib/constants'
 import { format, parseISO } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import type { Account, AccountInsert, AccountType } from '@/types'
+import type { Account, AccountInsert } from '@/types'
 
 interface AccountFormState {
   bank_name: string
-  account_type: AccountType
+  account_type: string
   label: string
   balance: string
   currency: string
@@ -29,7 +30,7 @@ interface AccountFormState {
 
 const defaultAccountForm: AccountFormState = {
   bank_name: '',
-  account_type: '입출금',
+  account_type: '',
   label: '',
   balance: '0',
   currency: 'KRW',
@@ -43,38 +44,39 @@ interface SnapshotFormState {
 }
 
 const today = new Date().toISOString().slice(0, 10)
-
-// 표시할 스냅샷 개수 (최신 순)
 const SNAPSHOT_PAGE_SIZE = 12
 
 export default function AccountsPage() {
   const { data: accounts = [], error: accountsError, totalBalance, add, update, remove } = useAccounts()
+  const { banks } = useBankInstitutions()
+  const { accountTypes } = useAccountTypes()
   useCategories()
 
-  // 최근 2년치 스냅샷 표시
   const snapshotFrom = `${new Date().getFullYear() - 1}-01-01`
   const { data: snapshots = [], upsert: upsertSnapshot, remove: removeSnapshot } = useAssetSnapshots(snapshotFrom)
 
-  // 계좌 다이얼로그
+  const dragScrollRef = useDragScroll<HTMLDivElement>()
+
   const [accountOpen, setAccountOpen] = useState(false)
   const [editing, setEditing] = useState<Account | null>(null)
   const [accountForm, setAccountForm] = useState<AccountFormState>(defaultAccountForm)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  // 스냅샷 다이얼로그
   const [snapshotOpen, setSnapshotOpen] = useState(false)
   const [snapshotForm, setSnapshotForm] = useState<SnapshotFormState>({ snapshot_date: today, total_amount: '' })
   const [editingSnapshotId, setEditingSnapshotId] = useState<string | null>(null)
 
-  // 스냅샷 표시 개수 토글
   const [showAllSnapshots, setShowAllSnapshots] = useState(false)
   const visibleSnapshots = showAllSnapshots ? snapshots : snapshots.slice(0, SNAPSHOT_PAGE_SIZE)
 
-  // ── 계좌 CRUD ──────────────────────────────────────────────
+  // 은행 이름 목록 (DB 기반, fallback 없음)
+  const bankNames = banks.map(b => b.name)
+  const typeNames = accountTypes.map(t => t.name)
+
   function openAddAccount() {
     setEditing(null)
-    setAccountForm(defaultAccountForm)
+    setAccountForm({ ...defaultAccountForm, account_type: typeNames[0] ?? '' })
     setAccountOpen(true)
   }
 
@@ -96,7 +98,7 @@ export default function AccountsPage() {
     setSaveError(null)
     const payload: AccountInsert = {
       bank_name: accountForm.bank_name,
-      account_type: accountForm.account_type,
+      account_type: accountForm.account_type as Account['account_type'],
       label: accountForm.label || null,
       balance: parseAmountInput(accountForm.balance),
       currency: accountForm.currency,
@@ -124,44 +126,32 @@ export default function AccountsPage() {
     }
   }
 
-  // ── 스냅샷 CRUD ────────────────────────────────────────────
   function openAddSnapshot(prefillAmount?: number) {
     setEditingSnapshotId(null)
-    setSnapshotForm({
-      snapshot_date: today,
-      total_amount: prefillAmount ? String(prefillAmount) : '',
-    })
+    setSnapshotForm({ snapshot_date: today, total_amount: prefillAmount ? String(prefillAmount) : '' })
     setSnapshotOpen(true)
   }
 
   function openEditSnapshot(snap: { id: string; snapshot_date: string; total_amount: number }) {
     setEditingSnapshotId(snap.id)
-    setSnapshotForm({
-      snapshot_date: snap.snapshot_date,
-      total_amount: String(snap.total_amount),
-    })
+    setSnapshotForm({ snapshot_date: snap.snapshot_date, total_amount: String(snap.total_amount) })
     setSnapshotOpen(true)
   }
 
   async function handleSnapshotSave() {
     const amount = parseAmountInput(snapshotForm.total_amount)
     if (!snapshotForm.snapshot_date || amount <= 0) return
-    await upsertSnapshot.mutateAsync({
-      snapshot_date: snapshotForm.snapshot_date,
-      total_amount: amount,
-    })
+    await upsertSnapshot.mutateAsync({ snapshot_date: snapshotForm.snapshot_date, total_amount: amount })
     setSnapshotOpen(false)
   }
 
-  // 계좌 종류별 그룹화
-  const grouped = ACCOUNT_TYPES.reduce<Record<string, Account[]>>((acc, type) => {
-    acc[type] = accounts.filter(a => a.account_type === type)
-    return acc
-  }, {})
+  // 계좌 종류별 그룹화 (DB 기반)
+  const usedTypes: string[] = [...new Set(accounts.map(a => a.account_type as string))]
+  const orderedTypes = typeNames.filter(t => usedTypes.includes(t))
+  usedTypes.forEach(t => { if (!orderedTypes.includes(t)) orderedTypes.push(t) })
 
   return (
     <div className="space-y-5">
-      {/* 에러 표시 */}
       {accountsError && (
         <div className="bg-rose-50 border border-rose-200 rounded-2xl px-5 py-4">
           <p className="text-sm font-semibold text-rose-700">계좌 데이터를 불러오지 못했습니다</p>
@@ -186,121 +176,86 @@ export default function AccountsPage() {
           </div>
         </div>
         <div className="grid grid-cols-2 sm:flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => openAddSnapshot(totalBalance)}
-            className="rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50 gap-1.5 text-xs sm:text-sm"
-          >
+          <Button variant="outline" onClick={() => openAddSnapshot(totalBalance)} className="rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50 gap-1.5 text-xs sm:text-sm">
             <CalendarPlus className="h-4 w-4 shrink-0" />
             자산 기록
           </Button>
-          <Button
-            onClick={openAddAccount}
-            className="rounded-xl gradient-primary text-white border-0 shadow-sm hover:opacity-90 text-xs sm:text-sm"
-          >
+          <Button onClick={openAddAccount} className="rounded-xl gradient-primary text-white border-0 shadow-sm hover:opacity-90 text-xs sm:text-sm">
             <Plus className="h-4 w-4 shrink-0" />
             계좌 추가
           </Button>
         </div>
       </div>
 
-      {/* 계좌 테이블 */}
-      <div className="bg-white rounded-2xl card-shadow overflow-x-auto">
+      {/* 계좌 가로 카드 */}
+      <div className="bg-white rounded-2xl card-shadow overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 className="font-semibold text-gray-800">등록된 계좌</h3>
-          <span className="text-xs text-gray-400">{accounts.length}개</span>
+          <span className="text-xs text-gray-400">{accounts.length}개 · 총 {formatCurrency(totalBalance)}</span>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-gray-50 border-b border-gray-100">
-              <TableHead className="w-36 text-xs font-semibold text-gray-500 uppercase tracking-wide">구분</TableHead>
-              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">은행/기관</TableHead>
-              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">별명</TableHead>
-              <TableHead className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">잔액</TableHead>
-              <TableHead className="w-24 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">관리</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {accounts.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-16">
-                  <Building2 className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                  <p>등록된 계좌가 없습니다.</p>
-                  <Button className="mt-3" onClick={openAddAccount}>첫 계좌 추가하기</Button>
-                </TableCell>
-              </TableRow>
-            )}
 
-            {ACCOUNT_TYPES.map(type => {
-              const list = grouped[type]
-              if (!list || list.length === 0) return null
+        {accounts.length === 0 ? (
+          <div className="py-16 text-center">
+            <Building2 className="h-10 w-10 mx-auto mb-3 opacity-20" />
+            <p className="text-sm text-gray-400">등록된 계좌가 없습니다.</p>
+            <Button className="mt-3" onClick={openAddAccount}>첫 계좌 추가하기</Button>
+          </div>
+        ) : (
+          <div className="p-4 space-y-4">
+            {orderedTypes.map(type => {
+              const list = accounts.filter(a => a.account_type === type)
+              if (list.length === 0) return null
               const subtotal = list.reduce((s, a) => s + a.balance, 0)
 
               return (
-                <>
-                  <TableRow key={`group-${type}`} className="bg-indigo-50/70 border-t border-indigo-100">
-                    <TableCell colSpan={3} className="font-semibold text-sm text-indigo-700 py-2.5">
-                      {type}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-sm text-indigo-700 py-2.5">
-                      {formatCurrency(subtotal)}
-                    </TableCell>
-                    <TableCell className="py-2.5" />
-                  </TableRow>
-
-                  {list.map(account => (
-                    <TableRow key={account.id} className="hover:bg-gray-50 transition-colors">
-                      <TableCell className="pl-8">
-                        <Badge variant="secondary" className="text-xs rounded-lg bg-gray-100 text-gray-600">{account.account_type}</Badge>
-                      </TableCell>
-                      <TableCell className="font-medium text-gray-800">{account.bank_name}</TableCell>
-                      <TableCell className="text-gray-400 text-sm">{account.label ?? '—'}</TableCell>
-                      <TableCell className="text-right font-semibold text-gray-800">{formatCurrency(account.balance)}</TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex gap-1 justify-center">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-700" onClick={() => openEditAccount(account)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                <Trash2 className="h-3.5 w-3.5" />
+                <div key={type}>
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">{type}</span>
+                    <span className="text-xs font-semibold text-indigo-600">{formatCurrency(subtotal)}</span>
+                  </div>
+                  <div className="overflow-x-auto" ref={list === accounts.filter(a => a.account_type === orderedTypes[0]) ? dragScrollRef : undefined}>
+                    <div className="flex gap-3 pb-1" style={{ minWidth: 'min-content' }}>
+                      {list.map(account => (
+                        <div key={account.id} className="flex-shrink-0 w-56 bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-xl p-4 hover:shadow-md transition-shadow">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center shrink-0">
+                              <Wallet className="h-4 w-4 text-white" />
+                            </div>
+                            <div className="flex gap-0.5">
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-gray-700" onClick={() => openEditAccount(account)}>
+                                <Pencil className="h-3 w-3" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>계좌를 삭제하시겠습니까?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  {account.bank_name} ({account.account_type}) 계좌를 삭제합니다.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>취소</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleAccountDelete(account.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                  삭제
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-destructive">
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>계좌를 삭제하시겠습니까?</AlertDialogTitle>
+                                    <AlertDialogDescription>{account.bank_name} ({account.account_type}) 계좌를 삭제합니다.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>취소</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleAccountDelete(account.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">삭제</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                          <p className="text-sm font-semibold text-gray-800 truncate">{account.bank_name}</p>
+                          <p className="text-xs text-gray-400 truncate">{account.label ?? account.account_type}</p>
+                          <p className="text-base font-bold text-gray-900 mt-2">{formatCurrency(account.balance)}</p>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               )
             })}
-          </TableBody>
-
-          {accounts.length > 0 && (
-            <TableFooter>
-              <TableRow className="bg-gray-50">
-                <TableCell colSpan={3} className="font-bold text-sm text-gray-700">총 자산</TableCell>
-                <TableCell className="text-right font-bold text-base text-indigo-600">{formatCurrency(totalBalance)}</TableCell>
-                <TableCell />
-              </TableRow>
-            </TableFooter>
-          )}
-        </Table>
+          </div>
+        )}
       </div>
 
       {/* 자산 이력 */}
@@ -309,15 +264,10 @@ export default function AccountsPage() {
           <div className="flex items-center gap-2">
             <History className="h-4 w-4 text-indigo-500" />
             <h3 className="font-semibold text-gray-800">자산 이력</h3>
-            <span className="text-xs text-gray-400">날짜별 총 자산 기록 · 자산 변화 그래프에 반영됩니다</span>
+            <span className="text-xs text-gray-400 hidden sm:inline">날짜별 총 자산 기록 · 자산 변화 그래프에 반영됩니다</span>
           </div>
-          <Button
-            size="sm"
-            onClick={() => openAddSnapshot()}
-            className="rounded-xl gradient-primary text-white border-0 shadow-sm hover:opacity-90 h-8 text-xs"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            이력 추가
+          <Button size="sm" onClick={() => openAddSnapshot()} className="rounded-xl gradient-primary text-white border-0 shadow-sm hover:opacity-90 h-8 text-xs">
+            <Plus className="h-3.5 w-3.5" /> 이력 추가
           </Button>
         </div>
 
@@ -325,7 +275,6 @@ export default function AccountsPage() {
           <div className="py-12 text-center">
             <History className="h-10 w-10 mx-auto mb-3 text-gray-200" />
             <p className="text-sm text-gray-400">기록된 자산 이력이 없습니다</p>
-            <p className="text-xs text-gray-300 mt-1">계좌 잔액을 변경하거나 직접 이력을 추가하면 그래프에 반영됩니다</p>
             <Button size="sm" variant="outline" className="mt-4 rounded-xl" onClick={() => openAddSnapshot(totalBalance)}>
               오늘 현재 잔액으로 기록하기
             </Button>
@@ -343,28 +292,19 @@ export default function AccountsPage() {
               </TableHeader>
               <TableBody>
                 {visibleSnapshots.map((snap, idx) => {
-                  // snapshots는 내림차순(최신→과거)이므로 다음 항목이 이전 날짜
                   const prevSnap = snapshots[idx + 1]
                   const diff = prevSnap ? snap.total_amount - prevSnap.total_amount : null
-
                   return (
                     <TableRow key={snap.id} className="hover:bg-gray-50 transition-colors">
                       <TableCell className="text-sm font-medium text-gray-700">
                         {format(parseISO(snap.snapshot_date), 'yyyy년 MM월 dd일 (EEE)', { locale: ko })}
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-gray-800">
-                        {formatCurrency(snap.total_amount)}
-                      </TableCell>
+                      <TableCell className="text-right font-semibold text-gray-800">{formatCurrency(snap.total_amount)}</TableCell>
                       <TableCell className="text-right text-sm">
-                        {diff === null ? (
-                          <span className="text-gray-300">—</span>
-                        ) : diff > 0 ? (
-                          <span className="text-emerald-600">+{formatCurrency(diff)}</span>
-                        ) : diff < 0 ? (
-                          <span className="text-rose-500">{formatCurrency(diff, true)}</span>
-                        ) : (
-                          <span className="text-gray-400">변동 없음</span>
-                        )}
+                        {diff === null ? <span className="text-gray-300">—</span>
+                          : diff > 0 ? <span className="text-emerald-600">+{formatCurrency(diff)}</span>
+                          : diff < 0 ? <span className="text-rose-500">{formatCurrency(diff, true)}</span>
+                          : <span className="text-gray-400">변동 없음</span>}
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex gap-1 justify-center">
@@ -373,9 +313,7 @@ export default function AccountsPage() {
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
@@ -386,9 +324,7 @@ export default function AccountsPage() {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>취소</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => removeSnapshot.mutate(snap.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                  삭제
-                                </AlertDialogAction>
+                                <AlertDialogAction onClick={() => removeSnapshot.mutate(snap.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">삭제</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
@@ -399,13 +335,9 @@ export default function AccountsPage() {
                 })}
               </TableBody>
             </Table>
-
             {snapshots.length > SNAPSHOT_PAGE_SIZE && (
               <div className="px-5 py-3 border-t border-gray-100 text-center">
-                <button
-                  className="text-xs text-indigo-500 hover:text-indigo-700 font-medium"
-                  onClick={() => setShowAllSnapshots(v => !v)}
-                >
+                <button className="text-xs text-indigo-500 hover:text-indigo-700 font-medium" onClick={() => setShowAllSnapshots(v => !v)}>
                   {showAllSnapshots ? '접기' : `전체 ${snapshots.length}건 모두 보기`}
                 </button>
               </div>
@@ -423,40 +355,42 @@ export default function AccountsPage() {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>은행/기관명</Label>
-              <Select
-                value={BANK_NAMES.includes(accountForm.bank_name as typeof BANK_NAMES[number]) ? accountForm.bank_name : ''}
-                onValueChange={v => setAccountForm(f => ({ ...f, bank_name: v }))}
-              >
-                <SelectTrigger><SelectValue placeholder="선택하세요" /></SelectTrigger>
-                <SelectContent>
-                  {BANK_NAMES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder="목록에 없으면 직접 입력"
-                value={BANK_NAMES.includes(accountForm.bank_name as typeof BANK_NAMES[number]) ? '' : accountForm.bank_name}
-                onChange={e => setAccountForm(f => ({ ...f, bank_name: e.target.value }))}
-              />
+              {bankNames.length > 0 ? (
+                <Select
+                  value={bankNames.includes(accountForm.bank_name) ? accountForm.bank_name : '__custom__'}
+                  onValueChange={v => { if (v !== '__custom__') setAccountForm(f => ({ ...f, bank_name: v })) }}
+                >
+                  <SelectTrigger><SelectValue placeholder="선택하세요" /></SelectTrigger>
+                  <SelectContent>
+                    {bankNames.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                    <SelectItem value="__custom__">직접 입력</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : null}
+              {(!bankNames.includes(accountForm.bank_name) || bankNames.length === 0) && (
+                <Input
+                  placeholder="은행/기관명 직접 입력"
+                  value={accountForm.bank_name}
+                  onChange={e => setAccountForm(f => ({ ...f, bank_name: e.target.value }))}
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label>계좌 종류</Label>
               <Select
-                value={accountForm.account_type}
-                onValueChange={v => setAccountForm(f => ({ ...f, account_type: v as AccountType }))}
+                value={accountForm.account_type || '__none__'}
+                onValueChange={v => setAccountForm(f => ({ ...f, account_type: v === '__none__' ? '' : v }))}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="선택하세요" /></SelectTrigger>
                 <SelectContent>
-                  {ACCOUNT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {typeNames.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {typeNames.length === 0 && <SelectItem value="__none__">종류 없음</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>별명 (선택)</Label>
-              <Input
-                placeholder="예: 생활비 통장"
-                value={accountForm.label}
-                onChange={e => setAccountForm(f => ({ ...f, label: e.target.value }))}
-              />
+              <Input placeholder="예: 생활비 통장" value={accountForm.label} onChange={e => setAccountForm(f => ({ ...f, label: e.target.value }))} />
             </div>
             <div className="space-y-2">
               <Label>현재 잔액 (원)</Label>
@@ -465,7 +399,6 @@ export default function AccountsPage() {
                 value={Number(accountForm.balance).toLocaleString('ko-KR')}
                 onChange={e => setAccountForm(f => ({ ...f, balance: String(parseAmountInput(e.target.value)) }))}
               />
-              <p className="text-xs text-gray-400">잔액 변경 시 오늘 날짜로 자산 이력이 자동 생성됩니다</p>
             </div>
           </div>
           {saveError && (
@@ -475,7 +408,7 @@ export default function AccountsPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setAccountOpen(false)}>취소</Button>
-            <Button onClick={handleAccountSave} disabled={!accountForm.bank_name}>저장</Button>
+            <Button onClick={handleAccountSave} disabled={!accountForm.bank_name || !accountForm.account_type}>저장</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -489,12 +422,7 @@ export default function AccountsPage() {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>날짜</Label>
-              <Input
-                type="date"
-                value={snapshotForm.snapshot_date}
-                onChange={e => setSnapshotForm(f => ({ ...f, snapshot_date: e.target.value }))}
-                className="rounded-xl"
-              />
+              <Input type="date" value={snapshotForm.snapshot_date} onChange={e => setSnapshotForm(f => ({ ...f, snapshot_date: e.target.value }))} className="rounded-xl" />
               <p className="text-xs text-gray-400">같은 날짜가 이미 있으면 금액이 덮어씌워집니다</p>
             </div>
             <div className="space-y-2">
@@ -507,11 +435,7 @@ export default function AccountsPage() {
                 className="rounded-xl"
               />
               {totalBalance > 0 && (
-                <button
-                  type="button"
-                  className="text-xs text-indigo-500 hover:text-indigo-700"
-                  onClick={() => setSnapshotForm(f => ({ ...f, total_amount: String(totalBalance) }))}
-                >
+                <button type="button" className="text-xs text-indigo-500 hover:text-indigo-700" onClick={() => setSnapshotForm(f => ({ ...f, total_amount: String(totalBalance) }))}>
                   현재 총 계좌 잔액({formatCurrency(totalBalance)})으로 채우기
                 </button>
               )}

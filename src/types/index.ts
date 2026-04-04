@@ -96,6 +96,25 @@ export interface Account {
 export type AccountInsert = Omit<Account, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 export type AccountUpdate = Partial<AccountInsert>
 
+// ─── 은행/기관 ───────────────────────────────────────────────────────────────
+export interface BankInstitution {
+  id: UUID
+  name: string
+  category: '은행' | '증권' | '연금' | '기타'
+  display_order: number
+  is_active: boolean
+  created_at: ISOTimestamp
+}
+
+// ─── 계좌 종류 (마스터) ──────────────────────────────────────────────────────
+export interface AccountTypeMaster {
+  id: UUID
+  name: string
+  display_order: number
+  is_active: boolean
+  created_at: ISOTimestamp
+}
+
 // ─── 자산 스냅샷 ──────────────────────────────────────────────────────────────
 export interface AssetSnapshot {
   id: UUID
@@ -237,4 +256,30 @@ export interface TransactionFilters {
   dateFrom?: ISODate
   dateTo?: ISODate
   keyword?: string
+}
+
+// ─── 고객센터 ────────────────────────────────────────────────────────────────
+export type TicketStatus = 'open' | 'answered' | 'closed'
+
+export interface SupportTicket {
+  id: UUID
+  user_id: UUID
+  title: string
+  content: string
+  status: TicketStatus
+  created_at: ISOTimestamp
+  updated_at: ISOTimestamp
+  // JOIN
+  profile?: { display_name: string | null }
+  replies_count?: number
+}
+
+export interface SupportReply {
+  id: UUID
+  ticket_id: UUID
+  user_id: UUID
+  content: string
+  is_admin: boolean
+  created_at: ISOTimestamp
+  profile?: { display_name: string | null }
 }

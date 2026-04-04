@@ -14,6 +14,8 @@ import CardsPage from '@/pages/CardsPage'
 import HouseholdsPage from '@/pages/HouseholdsPage'
 import AdminUsersPage from '@/pages/AdminUsersPage'
 import MenuConfigPage from '@/pages/MenuConfigPage'
+import AdminBanksPage from '@/pages/AdminBanksPage'
+import SupportPage from '@/pages/SupportPage'
 import ProfilePage from '@/pages/ProfilePage'
 
 export default function AppRouter() {
@@ -35,6 +37,8 @@ export default function AppRouter() {
           <Route path="households" element={<HouseholdsPage />} />
           <Route path="admin/users" element={<AdminUsersPage />} />
           <Route path="admin/menus" element={<MenuConfigPage />} />
+          <Route path="admin/banks" element={<AdminBanksPage />} />
+          <Route path="support" element={<SupportPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
