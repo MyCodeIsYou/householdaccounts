@@ -43,7 +43,7 @@ export function useAccounts() {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('accounts').update({ is_active: false }).eq('id', id)
+      const { error } = await supabase.from('accounts').delete().eq('id', id)
       if (error) throw error
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['accounts', scopeKey] }),

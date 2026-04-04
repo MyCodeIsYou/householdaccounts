@@ -22,12 +22,13 @@ export function useAnnualPlan(year: number) {
   })
 
   // 실적: transactions에서 연도별 카테고리+월 집계
+  // subcategory_id 우선 사용 (연간 계획표는 하위 카테고리 기준)
   const actualQuery = useQuery({
     queryKey: ['annual-plan-actual', scopeKey, year],
     queryFn: async () => {
       if (!user) return []
       const { data, error } = await applyFilter(
-        supabase.from('transactions').select('category_id, txn_date, amount, type')
+        supabase.from('transactions').select('category_id, subcategory_id, txn_date, amount, type')
       )
         .gte('txn_date', `${year}-01-01`)
         .lte('txn_date', `${year}-12-31`)
@@ -39,15 +40,17 @@ export function useAnnualPlan(year: number) {
   })
 
   // category_id → MonthKey → amount 집계 맵
+  // subcategory_id가 있으면 하위 카테고리 기준, 없으면 대분류 기준
   const actualMap = new Map<string, Record<MonthKey, number>>()
   for (const row of actualQuery.data ?? []) {
-    if (!row.category_id) continue
+    const catId = row.subcategory_id ?? row.category_id
+    if (!catId) continue
     const monthIdx = parseInt(row.txn_date.slice(5, 7), 10) - 1
     const key = MONTH_KEYS[monthIdx] as MonthKey
-    if (!actualMap.has(row.category_id)) {
-      actualMap.set(row.category_id, Object.fromEntries(MONTH_KEYS.map(k => [k, 0])) as Record<MonthKey, number>)
+    if (!actualMap.has(catId)) {
+      actualMap.set(catId, Object.fromEntries(MONTH_KEYS.map(k => [k, 0])) as Record<MonthKey, number>)
     }
-    actualMap.get(row.category_id)![key] += row.amount
+    actualMap.get(catId)![key] += row.amount
   }
 
   const upsertCell = useMutation({

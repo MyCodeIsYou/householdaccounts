@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, Menu, User } from 'lucide-react'
 
 const pageTitles: Record<string, { title: string; desc: string }> = {
   '/':                { title: '대시보드',       desc: '자산 현황 및 최근 거래 요약' },
@@ -19,7 +19,7 @@ const pageTitles: Record<string, { title: string; desc: string }> = {
   '/admin/menus':     { title: '메뉴 관리',          desc: '내비게이션 메뉴 표시 설정' },
 }
 
-export default function TopBar() {
+export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { user, profile, signOut } = useAuth()
@@ -28,10 +28,18 @@ export default function TopBar() {
   const initials = displayName.slice(0, 2).toUpperCase()
 
   return (
-    <header className="h-16 bg-white border-b flex items-center justify-between px-6 shrink-0 card-shadow">
-      <div>
-        <h1 className="text-base font-semibold text-gray-900 leading-tight">{page.title}</h1>
-        {page.desc && <p className="text-xs text-gray-400 mt-0.5">{page.desc}</p>}
+    <header className="h-16 bg-white border-b flex items-center justify-between px-4 md:px-6 shrink-0 card-shadow">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onMenuClick}
+          className="md:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div>
+          <h1 className="text-base font-semibold text-gray-900 leading-tight">{page.title}</h1>
+          {page.desc && <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">{page.desc}</p>}
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

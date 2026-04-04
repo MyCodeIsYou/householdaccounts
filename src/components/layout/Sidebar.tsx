@@ -97,7 +97,7 @@ function HouseholdSwitcher() {
   )
 }
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { appRole } = useAuth()
   const { configs, isLoading } = useMenuConfigs()
 
@@ -108,7 +108,7 @@ export default function Sidebar() {
   )
 
   return (
-    <aside className="w-60 shrink-0 flex flex-col h-full bg-[#0f1117]">
+    <aside className={`fixed md:relative inset-y-0 left-0 z-30 w-60 shrink-0 flex flex-col h-full bg-[#0f1117] transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       {/* 로고 */}
       <div className="h-16 flex items-center px-6 shrink-0">
         <div className="flex items-center gap-2.5">
@@ -140,6 +140,7 @@ export default function Sidebar() {
               key={menu.menu_key}
               to={menu.path}
               end={isEnd}
+              onClick={onClose}
               className={({ isActive }) =>
                 cn(
                   'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
@@ -183,6 +184,7 @@ export default function Sidebar() {
               <NavLink
                 key={to}
                 to={to}
+                onClick={onClose}
                 className={({ isActive }) =>
                   cn(
                     'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',

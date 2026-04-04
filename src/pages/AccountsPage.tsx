@@ -48,7 +48,7 @@ const today = new Date().toISOString().slice(0, 10)
 const SNAPSHOT_PAGE_SIZE = 12
 
 export default function AccountsPage() {
-  const { data: accounts = [], totalBalance, add, update, remove } = useAccounts()
+  const { data: accounts = [], error: accountsError, totalBalance, add, update, remove } = useAccounts()
   useCategories()
 
   // 최근 2년치 스냅샷 표시
@@ -59,6 +59,8 @@ export default function AccountsPage() {
   const [accountOpen, setAccountOpen] = useState(false)
   const [editing, setEditing] = useState<Account | null>(null)
   const [accountForm, setAccountForm] = useState<AccountFormState>(defaultAccountForm)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   // 스냅샷 다이얼로그
   const [snapshotOpen, setSnapshotOpen] = useState(false)
@@ -91,6 +93,7 @@ export default function AccountsPage() {
   }
 
   async function handleAccountSave() {
+    setSaveError(null)
     const payload: AccountInsert = {
       bank_name: accountForm.bank_name,
       account_type: accountForm.account_type,
@@ -100,12 +103,25 @@ export default function AccountsPage() {
       is_active: accountForm.is_active,
       display_order: accountForm.display_order,
     }
-    if (editing) {
-      await update.mutateAsync({ id: editing.id, payload })
-    } else {
-      await add.mutateAsync(payload)
+    try {
+      if (editing) {
+        await update.mutateAsync({ id: editing.id, payload })
+      } else {
+        await add.mutateAsync(payload)
+      }
+      setAccountOpen(false)
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : '저장에 실패했습니다')
     }
-    setAccountOpen(false)
+  }
+
+  async function handleAccountDelete(id: string) {
+    setDeleteError(null)
+    try {
+      await remove.mutateAsync(id)
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : '삭제에 실패했습니다')
+    }
   }
 
   // ── 스냅샷 CRUD ────────────────────────────────────────────
@@ -145,6 +161,19 @@ export default function AccountsPage() {
 
   return (
     <div className="space-y-5">
+      {/* 에러 표시 */}
+      {accountsError && (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl px-5 py-4">
+          <p className="text-sm font-semibold text-rose-700">계좌 데이터를 불러오지 못했습니다</p>
+          <p className="text-xs text-rose-500 mt-1 font-mono">{String(accountsError)}</p>
+        </div>
+      )}
+      {deleteError && (
+        <div className="bg-rose-50 border border-rose-200 rounded-2xl px-5 py-4">
+          <p className="text-sm font-semibold text-rose-700">삭제 실패: {deleteError}</p>
+        </div>
+      )}
+
       {/* 상단 요약 */}
       <div className="flex items-center justify-between bg-white rounded-2xl card-shadow p-5">
         <div className="flex items-center gap-4">
@@ -176,7 +205,7 @@ export default function AccountsPage() {
       </div>
 
       {/* 계좌 테이블 */}
-      <div className="bg-white rounded-2xl card-shadow overflow-hidden">
+      <div className="bg-white rounded-2xl card-shadow overflow-x-auto">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 className="font-semibold text-gray-800">등록된 계좌</h3>
           <span className="text-xs text-gray-400">{accounts.length}개</span>
@@ -247,7 +276,7 @@ export default function AccountsPage() {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>취소</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => remove.mutate(account.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                <AlertDialogAction onClick={() => handleAccountDelete(account.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                                   삭제
                                 </AlertDialogAction>
                               </AlertDialogFooter>
@@ -275,7 +304,7 @@ export default function AccountsPage() {
       </div>
 
       {/* 자산 이력 */}
-      <div className="bg-white rounded-2xl card-shadow overflow-hidden">
+      <div className="bg-white rounded-2xl card-shadow overflow-x-auto">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <History className="h-4 w-4 text-indigo-500" />
@@ -439,6 +468,11 @@ export default function AccountsPage() {
               <p className="text-xs text-gray-400">잔액 변경 시 오늘 날짜로 자산 이력이 자동 생성됩니다</p>
             </div>
           </div>
+          {saveError && (
+            <div className="rounded-xl bg-rose-50 border border-rose-100 px-4 py-3">
+              <p className="text-sm text-rose-600">{saveError}</p>
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setAccountOpen(false)}>취소</Button>
             <Button onClick={handleAccountSave} disabled={!accountForm.bank_name}>저장</Button>

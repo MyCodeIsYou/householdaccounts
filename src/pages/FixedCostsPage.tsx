@@ -295,10 +295,10 @@ export default function FixedCostsPage() {
             </div>
             <div className="space-y-2">
               <Label>카드</Label>
-              <Select value={form.card_id} onValueChange={v => setForm(f => ({ ...f, card_id: v }))}>
+              <Select value={form.card_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, card_id: v === '__none__' ? '' : v }))}>
                 <SelectTrigger><SelectValue placeholder="없음" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">없음</SelectItem>
+                  <SelectItem value="__none__">없음</SelectItem>
                   {cards.map(c => <SelectItem key={c.id} value={c.id}>{c.card_name}</SelectItem>)}
                 </SelectContent>
               </Select>

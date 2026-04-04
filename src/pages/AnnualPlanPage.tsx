@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useDragScroll } from '@/hooks/useDragScroll'
 import { useAnnualPlan } from '@/hooks/useAnnualPlan'
 import { useCategories } from '@/hooks/useCategories'
 import { Input } from '@/components/ui/input'
@@ -19,6 +20,7 @@ export default function AnnualPlanPage() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null)
   const [editValue, setEditValue] = useState('')
+  const dragScrollRef = useDragScroll<HTMLDivElement>()
 
   const years = Array.from({ length: 5 }, (_, i) => curYear - 2 + i)
 
@@ -61,16 +63,16 @@ export default function AnnualPlanPage() {
       </div>
 
       <div className="bg-white rounded-2xl card-shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse min-w-[900px]">
+        <div className="overflow-x-auto" ref={dragScrollRef}>
+          <table className="text-sm border-collapse" style={{ minWidth: '1400px' }}>
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-44 sticky left-0 bg-gray-50">항목</th>
-                <th className="px-2 py-3 text-center text-xs text-gray-400 w-16">구분</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap sticky left-0 bg-gray-50 z-10" style={{ minWidth: '120px' }}>항목</th>
+                <th className="px-3 py-3 text-center text-xs text-gray-400 whitespace-nowrap" style={{ minWidth: '60px' }}>구분</th>
                 {MONTH_LABELS.map(m => (
-                  <th key={m} className="px-2 py-3 text-center text-xs font-semibold text-gray-500 w-20">{m}</th>
+                  <th key={m} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 whitespace-nowrap" style={{ minWidth: '100px' }}>{m}</th>
                 ))}
-                <th className="px-3 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide w-24">합계</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap" style={{ minWidth: '110px' }}>합계</th>
               </tr>
             </thead>
             <tbody>
@@ -94,7 +96,7 @@ export default function AnnualPlanPage() {
                     {/* 그룹 헤더 행 */}
                     <tr key={`${group}-header`} className={`${groupColor} border-y font-semibold`}>
                       <td
-                        className={`px-3 py-2.5 sticky left-0 ${groupColor} cursor-pointer select-none`}
+                        className={`px-3 py-2.5 sticky left-0 z-10 ${groupColor} cursor-pointer select-none`}
                         onClick={() => setCollapsed(c => ({ ...c, [group]: !c[group] }))}
                       >
                         <span className={`flex items-center gap-1 ${groupTextColor}`}>
@@ -102,21 +104,21 @@ export default function AnnualPlanPage() {
                           {group}
                         </span>
                       </td>
-                      <td className="px-2 py-2.5 text-center text-xs text-gray-400">계획</td>
+                      <td className="px-3 py-2.5 text-center text-xs text-gray-400 whitespace-nowrap">계획</td>
                       {groupPlanTotals.map((v, i) => (
-                        <td key={i} className={`px-2 py-2.5 text-right text-xs ${groupTextColor}`}>{v > 0 ? (v / 10000).toFixed(0) + '만' : '—'}</td>
+                        <td key={i} className={`px-3 py-2.5 text-right text-xs whitespace-nowrap ${groupTextColor}`}>{v > 0 ? formatCurrency(v) : '—'}</td>
                       ))}
-                      <td className={`px-3 py-2.5 text-right text-xs font-bold ${groupTextColor}`}>
+                      <td className={`px-4 py-2.5 text-right text-xs font-bold whitespace-nowrap ${groupTextColor}`}>
                         {formatCurrency(groupPlanTotals.reduce((s, v) => s + v, 0))}
                       </td>
                     </tr>
                     <tr key={`${group}-actual-header`} className={`${groupColor} border-b`}>
-                      <td className={`sticky left-0 ${groupColor}`} />
-                      <td className="px-2 py-1.5 text-center text-xs text-gray-400">실적</td>
+                      <td className={`sticky left-0 z-10 ${groupColor}`} />
+                      <td className="px-3 py-1.5 text-center text-xs text-gray-400 whitespace-nowrap">실적</td>
                       {groupActualTotals.map((v, i) => (
-                        <td key={i} className="px-2 py-1.5 text-right text-xs text-indigo-600">{v > 0 ? (v / 10000).toFixed(0) + '만' : '—'}</td>
+                        <td key={i} className="px-3 py-1.5 text-right text-xs text-indigo-600 whitespace-nowrap">{v > 0 ? formatCurrency(v) : '—'}</td>
                       ))}
-                      <td className="px-3 py-1.5 text-right text-xs text-indigo-600">
+                      <td className="px-4 py-1.5 text-right text-xs text-indigo-600 whitespace-nowrap">
                         {formatCurrency(groupActualTotals.reduce((s, v) => s + v, 0))}
                       </td>
                     </tr>
@@ -131,14 +133,14 @@ export default function AnnualPlanPage() {
                       return (
                         <>
                           <tr key={`${cat.id}-plan`} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                            <td className="px-3 py-1.5 pl-8 sticky left-0 bg-white hover:bg-gray-50 text-sm text-gray-700">{cat.name}</td>
-                            <td className="px-2 py-1.5 text-center text-xs text-gray-400">계획</td>
+                            <td className="px-4 py-1.5 pl-8 sticky left-0 z-10 bg-white hover:bg-gray-50 text-sm text-gray-700 whitespace-nowrap">{cat.name}</td>
+                            <td className="px-3 py-1.5 text-center text-xs text-gray-400 whitespace-nowrap">계획</td>
                             {MONTH_KEYS.map((mk, i) => {
                               const isEditing = editingCell?.categoryId === cat.id && editingCell.monthKey === mk
                               return (
                                 <td
                                   key={mk}
-                                  className="px-1 py-1.5 text-right text-xs cursor-pointer hover:bg-indigo-50 transition-colors rounded"
+                                  className="px-3 py-1.5 text-right text-xs whitespace-nowrap cursor-pointer hover:bg-indigo-50 transition-colors rounded"
                                   onClick={() => openEdit(cat.id, mk)}
                                 >
                                   {isEditing ? (
@@ -153,31 +155,31 @@ export default function AnnualPlanPage() {
                                     />
                                   ) : (
                                     <span className={planRow[i] > 0 ? 'text-gray-700' : 'text-gray-300'}>
-                                      {planRow[i] > 0 ? (planRow[i] / 10000).toFixed(0) + '만' : '—'}
+                                      {planRow[i] > 0 ? formatCurrency(planRow[i]) : '—'}
                                     </span>
                                   )}
                                 </td>
                               )
                             })}
-                            <td className="px-3 py-1.5 text-right text-xs font-medium text-gray-600">
+                            <td className="px-4 py-1.5 text-right text-xs font-medium text-gray-600 whitespace-nowrap">
                               {planTotal > 0 ? formatCurrency(planTotal) : '—'}
                             </td>
                           </tr>
                           <tr key={`${cat.id}-actual`} className="border-b border-gray-100 bg-gray-50/40">
-                            <td className="sticky left-0 bg-gray-50/40" />
-                            <td className="px-2 py-1 text-center text-xs text-gray-400">실적</td>
+                            <td className="sticky left-0 z-10 bg-gray-50/40" />
+                            <td className="px-3 py-1 text-center text-xs text-gray-400 whitespace-nowrap">실적</td>
                             {MONTH_KEYS.map((mk, i) => {
                               const plan = planRow[i]
                               const actual = actualRow[i]
                               const diff = isIncome ? actual - plan : plan - actual
                               const colorClass = actual === 0 ? 'text-gray-300' : diff >= 0 ? 'text-emerald-600' : 'text-rose-500'
                               return (
-                                <td key={mk} className={`px-1 py-1 text-right text-xs ${colorClass}`}>
-                                  {actual > 0 ? (actual / 10000).toFixed(0) + '만' : '—'}
+                                <td key={mk} className={`px-3 py-1 text-right text-xs whitespace-nowrap ${colorClass}`}>
+                                  {actual > 0 ? formatCurrency(actual) : '—'}
                                 </td>
                               )
                             })}
-                            <td className={`px-3 py-1 text-right text-xs font-medium ${actualTotal > 0 ? 'text-indigo-600' : 'text-gray-300'}`}>
+                            <td className={`px-4 py-1 text-right text-xs font-medium whitespace-nowrap ${actualTotal > 0 ? 'text-indigo-600' : 'text-gray-300'}`}>
                               {actualTotal > 0 ? formatCurrency(actualTotal) : '—'}
                             </td>
                           </tr>

@@ -102,7 +102,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* 사용자 테이블 */}
-      <div className="bg-white rounded-2xl card-shadow overflow-hidden">
+      <div className="bg-white rounded-2xl card-shadow overflow-x-auto">
         {isLoading ? (
           <div className="p-12 flex justify-center">
             <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
@@ -169,7 +169,7 @@ export default function AdminUsersPage() {
       {/* 역할 안내 */}
       <div className="bg-white rounded-2xl card-shadow p-6">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">권한 레벨 안내</h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {(Object.entries(ROLE_LABELS) as [AppRole, string][]).map(([role, label]) => (
             <div key={role} className="bg-gray-50 rounded-xl p-3">
               <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full mb-2 ${ROLE_BADGE[role]}`}>

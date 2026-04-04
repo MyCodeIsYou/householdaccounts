@@ -161,7 +161,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* 합계 요약 */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: '수입', value: totalIncome, textCls: 'text-emerald-600', dotCls: 'bg-emerald-400' },
           { label: '지출', value: totalExpense, textCls: 'text-rose-500', dotCls: 'bg-rose-400' },
@@ -178,7 +178,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* 거래 테이블 */}
-      <div className="bg-white rounded-2xl card-shadow overflow-hidden">
+      <div className="bg-white rounded-2xl card-shadow overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50 border-b border-gray-100">
@@ -306,20 +306,20 @@ export default function TransactionsPage() {
             </div>
             <div className="space-y-2">
               <Label>카드</Label>
-              <Select value={form.card_id} onValueChange={v => setForm(f => ({ ...f, card_id: v }))}>
+              <Select value={form.card_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, card_id: v === '__none__' ? '' : v }))}>
                 <SelectTrigger><SelectValue placeholder="선택" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">없음</SelectItem>
+                  <SelectItem value="__none__">없음</SelectItem>
                   {cards.map(c => <SelectItem key={c.id} value={c.id}>{c.card_name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>계좌</Label>
-              <Select value={form.account_id} onValueChange={v => setForm(f => ({ ...f, account_id: v }))}>
+              <Select value={form.account_id || '__none__'} onValueChange={v => setForm(f => ({ ...f, account_id: v === '__none__' ? '' : v }))}>
                 <SelectTrigger><SelectValue placeholder="선택" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">없음</SelectItem>
+                  <SelectItem value="__none__">없음</SelectItem>
                   {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.bank_name} {a.label ?? a.account_type}</SelectItem>)}
                 </SelectContent>
               </Select>

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
 import type { Household, UUID } from '@/types'
@@ -78,8 +79,13 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user?.id, appRole])
 
+  const qc = useQueryClient()
+
   function setActiveHousehold(id: UUID | null) {
     setActiveHouseholdIdState(id)
+    // 캐시를 stale로 마킹하되 즉시 refetch하지 않음 (이전 filter로 잘못된 요청 방지)
+    // React 재렌더 후 새 scopeKey로 자동 fetch됨
+    qc.invalidateQueries({ refetchType: 'none' })
     if (user && appRole !== 'super_admin') {
       const savedKey = `household:${user.id}`
       if (id) {
