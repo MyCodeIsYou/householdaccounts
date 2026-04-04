@@ -175,30 +175,30 @@ export default function AccountsPage() {
       )}
 
       {/* 상단 요약 */}
-      <div className="flex items-center justify-between bg-white rounded-2xl card-shadow p-5">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl gradient-asset flex items-center justify-center shadow-sm">
-            <TrendingUp className="h-6 w-6 text-white" />
+      <div className="bg-white rounded-2xl card-shadow p-4 sm:p-5 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl gradient-asset flex items-center justify-center shadow-sm shrink-0">
+            <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
           </div>
           <div>
             <p className="text-xs text-gray-500 font-medium">현재 총 자산</p>
-            <p className="text-2xl font-bold text-amber-600">{formatCurrency(totalBalance)}</p>
+            <p className="text-lg sm:text-2xl font-bold text-amber-600">{formatCurrency(totalBalance)}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 sm:flex gap-2">
           <Button
             variant="outline"
             onClick={() => openAddSnapshot(totalBalance)}
-            className="rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50 gap-1.5"
+            className="rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50 gap-1.5 text-xs sm:text-sm"
           >
-            <CalendarPlus className="h-4 w-4" />
-            오늘 자산 기록
+            <CalendarPlus className="h-4 w-4 shrink-0" />
+            자산 기록
           </Button>
           <Button
             onClick={openAddAccount}
-            className="rounded-xl gradient-primary text-white border-0 shadow-sm hover:opacity-90"
+            className="rounded-xl gradient-primary text-white border-0 shadow-sm hover:opacity-90 text-xs sm:text-sm"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 shrink-0" />
             계좌 추가
           </Button>
         </div>
