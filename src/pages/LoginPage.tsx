@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Heart, Sparkles, Coffee } from 'lucide-react'
 
 export default function LoginPage() {
   const { signInWithEmail, signUpWithEmail } = useAuth()
@@ -37,26 +38,55 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f0f2f8]">
-      <div className="w-full max-w-sm">
-        {/* 로고 */}
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* 수채화 배경 장식 */}
+      <div className="absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl opacity-30 pointer-events-none" style={{ background: 'radial-gradient(circle, #e8b887 0%, transparent 70%)' }} />
+      <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl opacity-25 pointer-events-none" style={{ background: 'radial-gradient(circle, #8aa88a 0%, transparent 70%)' }} />
+      <div className="absolute top-1/3 right-1/4 w-72 h-72 rounded-full blur-3xl opacity-20 pointer-events-none" style={{ background: 'radial-gradient(circle, #7ba8c9 0%, transparent 70%)' }} />
+
+      {/* 반짝이 장식 */}
+      <Sparkles className="absolute top-12 right-12 w-5 h-5 text-peach opacity-60 animate-pulse" />
+      <Sparkles className="absolute bottom-20 left-16 w-4 h-4 text-sage opacity-50 animate-pulse" style={{ animationDelay: '1s' }} />
+      <Heart className="absolute top-1/4 left-12 w-4 h-4 text-rose-400 opacity-40" fill="currentColor" />
+      <Coffee className="absolute bottom-16 right-20 w-5 h-5 text-ocean opacity-40" />
+
+      <div className="w-full max-w-sm relative z-10">
+        {/* 헤더 */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-4">
-            <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-            </svg>
+          <div className="relative mb-5">
+            <div className="w-20 h-20 rounded-[2rem] gradient-primary flex items-center justify-center shadow-xl" style={{ boxShadow: '0 10px 30px -10px rgba(138, 168, 138, 0.5), 0 4px 12px rgba(123, 168, 201, 0.3)' }}>
+              <span className="text-3xl">🏠</span>
+            </div>
+            <Sparkles className="absolute -top-1 -right-1 w-5 h-5 text-peach animate-pulse" fill="currentColor" />
+            <Heart className="absolute -bottom-1 -left-1 w-4 h-4 text-rose-400" fill="currentColor" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">가계부</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {isSignUp ? '새 계정을 만들어 시작하세요' : '로그인하여 가계부를 관리하세요'}
+          <h1 className="text-4xl text-chocolate tracking-wide" style={{ fontFamily: "'Jua', sans-serif" }}>
+            우리집 가계부
+          </h1>
+          <p className="text-sm text-gray-500 mt-2 italic">
+            {isSignUp ? '함께 써가는 따뜻한 가계부' : '오늘도 소중한 하루를 기록해요'}
           </p>
+          <div className="flex items-center gap-2 mt-3">
+            <div className="w-8 h-px bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-50" />
+            <Heart className="w-2.5 h-2.5 text-peach" fill="currentColor" />
+            <div className="w-8 h-px bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-50" />
+          </div>
         </div>
 
         {/* 폼 카드 */}
-        <div className="bg-white rounded-2xl card-shadow p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="bg-white rounded-3xl card-shadow-lg p-8 relative">
+          {/* 카드 상단 장식 */}
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-white border shadow-sm" style={{ borderColor: 'rgba(212, 184, 135, 0.4)' }}>
+            <span className="text-xs font-medium text-chocolate">
+              {isSignUp ? '✦ 새로운 시작' : '✦ 다시 만나요'}
+            </span>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5 mt-2">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">이메일</Label>
+              <Label htmlFor="email" className="text-sm font-medium text-chocolate flex items-center gap-1.5">
+                <span>📧</span> 이메일
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -64,11 +94,13 @@ export default function LoginPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="h-11 rounded-xl border-gray-200 focus:border-indigo-400"
+                className="h-11 rounded-2xl focus:border-sage"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">비밀번호</Label>
+              <Label htmlFor="password" className="text-sm font-medium text-chocolate flex items-center gap-1.5">
+                <span>🔒</span> 비밀번호
+              </Label>
               <Input
                 id="password"
                 type="password"
@@ -77,30 +109,60 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="h-11 rounded-xl border-gray-200 focus:border-indigo-400"
+                className="h-11 rounded-2xl focus:border-sage"
               />
             </div>
             {error && (
-              <div className="rounded-xl bg-rose-50 border border-rose-100 px-4 py-3">
+              <div className="rounded-2xl bg-rose-50 border border-rose-100 px-4 py-3">
                 <p className="text-sm text-rose-600">{error}</p>
               </div>
             )}
-            <Button type="submit" className="w-full h-11 rounded-xl gradient-primary text-white font-semibold shadow-md shadow-indigo-500/20 border-0 hover:opacity-90 transition-opacity" disabled={loading}>
-              {loading ? '처리 중...' : isSignUp ? '회원가입' : '로그인'}
+            <Button
+              type="submit"
+              className="w-full h-12 rounded-2xl gradient-primary text-white font-semibold border-0 hover:opacity-90 transition-all hover:scale-[1.01]"
+              style={{ boxShadow: '0 6px 20px -6px rgba(138, 168, 138, 0.6)' }}
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  준비중...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  {isSignUp ? '✨ 회원가입' : '🌿 로그인'}
+                </span>
+              )}
             </Button>
           </form>
+
+          <div className="mt-6 flex items-center gap-2">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent to-amber-200 opacity-50" />
+            <span className="text-xs text-gray-400">or</span>
+            <div className="flex-1 h-px bg-gradient-to-l from-transparent to-amber-200 opacity-50" />
+          </div>
+
           <div className="mt-5 text-center text-sm text-gray-500">
             {isSignUp ? (
               <>이미 계정이 있으신가요?{' '}
-                <button className="text-indigo-600 font-medium hover:underline" onClick={() => setIsSignUp(false)}>로그인</button>
+                <button className="text-sage font-semibold hover:underline" onClick={() => setIsSignUp(false)}>
+                  로그인하기 →
+                </button>
               </>
             ) : (
-              <>계정이 없으신가요?{' '}
-                <button className="text-indigo-600 font-medium hover:underline" onClick={() => setIsSignUp(true)}>회원가입</button>
+              <>처음 오셨나요?{' '}
+                <button className="text-sage font-semibold hover:underline" onClick={() => setIsSignUp(true)}>
+                  회원가입하기 →
+                </button>
               </>
             )}
           </div>
         </div>
+
+        {/* 푸터 */}
+        <p className="text-center text-xs text-gray-400 mt-6 italic">
+          "작은 기록이 모여 큰 이야기가 됩니다"
+        </p>
       </div>
     </div>
   )

@@ -2,60 +2,156 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+ * Watercolor Theme — warm, cozy, hand-drawn atmosphere
+ * Cream paper background + chocolate text + sage/ocean/peach accents
+ * ============================================================ */
+
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 224 71% 4%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
-    --primary: 243 75% 59%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 9% 46%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
-    --accent: 243 75% 96%;
-    --accent-foreground: 243 75% 40%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 243 75% 59%;
-    --radius: 0.75rem;
+    /* Cream paper background */
+    --background: 38 45% 94%;
+    --foreground: 25 35% 22%;          /* deep chocolate */
+    --card: 40 50% 97%;                /* lighter cream */
+    --card-foreground: 25 35% 22%;
+    --popover: 40 50% 98%;
+    --popover-foreground: 25 35% 22%;
+
+    /* Primary: watercolor sage green */
+    --primary: 140 25% 55%;
+    --primary-foreground: 40 50% 98%;
+
+    /* Secondary: soft peach */
+    --secondary: 28 60% 90%;
+    --secondary-foreground: 25 45% 35%;
+
+    --muted: 38 35% 90%;
+    --muted-foreground: 25 20% 45%;
+
+    /* Accent: ocean blue */
+    --accent: 200 45% 88%;
+    --accent-foreground: 205 50% 30%;
+
+    --destructive: 0 55% 60%;
+    --destructive-foreground: 40 50% 98%;
+
+    --border: 35 30% 82%;
+    --input: 35 30% 85%;
+    --ring: 140 25% 55%;
+    --radius: 1rem;
+
+    /* Custom watercolor palette */
+    --watercolor-cream: #f5ead0;
+    --watercolor-cream-deep: #ecdcb4;
+    --watercolor-chocolate: #4a3a28;
+    --watercolor-chocolate-light: #6b5340;
+    --watercolor-sage: #8aa88a;
+    --watercolor-sage-deep: #6b8e6b;
+    --watercolor-ocean: #7ba8c9;
+    --watercolor-ocean-deep: #5a8bad;
+    --watercolor-peach: #e8b887;
+    --watercolor-peach-deep: #d49866;
+    --watercolor-gold: #d4a84a;
+    --watercolor-rose: #d48a8a;
   }
 }
 
 @layer base {
   * { @apply border-border; }
+
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background-color: #f5ead0;
+    /* Layered paper texture — subtle watercolor wash + sparkle */
+    background-image:
+      radial-gradient(circle at 20% 15%, rgba(232, 184, 135, 0.12) 0%, transparent 50%),
+      radial-gradient(circle at 80% 85%, rgba(138, 168, 138, 0.10) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(123, 168, 201, 0.06) 0%, transparent 70%),
+      radial-gradient(ellipse at 10% 90%, rgba(212, 168, 74, 0.08) 0%, transparent 40%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.75 0 0 0 0 0.55 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-attachment: fixed;
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
   }
+
+  /* Tailwind gray-* overrides for warmer tones in watercolor theme */
+  .bg-white {
+    background-color: rgba(253, 248, 232, 0.85) !important;
+    backdrop-filter: blur(2px);
+  }
+  .bg-gray-50 { background-color: rgba(245, 234, 208, 0.5) !important; }
+  .bg-gray-100 { background-color: rgba(236, 220, 180, 0.6) !important; }
+  .text-gray-900 { color: #4a3a28 !important; }
+  .text-gray-800 { color: #574230 !important; }
+  .text-gray-700 { color: #6b5340 !important; }
+  .text-gray-600 { color: #7d6350 !important; }
+  .text-gray-500 { color: #907660 !important; }
+  .text-gray-400 { color: #a68b72 !important; }
+  .text-gray-300 { color: #c4ab8f !important; }
+  .border-gray-100 { border-color: rgba(212, 184, 135, 0.3) !important; }
+  .border-gray-200 { border-color: rgba(212, 184, 135, 0.5) !important; }
 }
 
 @layer utilities {
+  /* Watercolor gradients — soft, blended, hand-drawn feel */
   .gradient-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #a4c2a4 0%, #7ba8c9 100%);
   }
   .gradient-income {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    background: linear-gradient(135deg, #a4c2a4 0%, #8aa88a 100%);
   }
   .gradient-expense {
-    background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+    background: linear-gradient(135deg, #e8b887 0%, #d48a8a 100%);
   }
   .gradient-balance {
-    background: linear-gradient(135deg, #4776e6 0%, #8e54e9 100%);
+    background: linear-gradient(135deg, #7ba8c9 0%, #a4c2a4 100%);
   }
   .gradient-asset {
-    background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+    background: linear-gradient(135deg, #e8b887 0%, #d4a84a 100%);
   }
+
+  /* Soft watercolor shadow — like ink bleeding into paper */
   .card-shadow {
-    box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 4px 16px -2px rgba(0,0,0,.06);
+    box-shadow:
+      0 1px 2px rgba(74, 58, 40, 0.05),
+      0 4px 12px -2px rgba(138, 108, 70, 0.08),
+      0 0 0 1px rgba(212, 184, 135, 0.15);
   }
   .card-shadow-lg {
-    box-shadow: 0 4px 12px rgba(0,0,0,.06), 0 12px 32px -4px rgba(0,0,0,.1);
+    box-shadow:
+      0 2px 6px rgba(74, 58, 40, 0.06),
+      0 12px 28px -6px rgba(138, 108, 70, 0.15),
+      0 0 0 1px rgba(212, 184, 135, 0.2);
   }
+
+  /* Watercolor accent text colors */
+  .text-sage { color: #6b8e6b; }
+  .text-ocean { color: #5a8bad; }
+  .text-peach { color: #d49866; }
+  .text-chocolate { color: #4a3a28; }
+
+  /* Override harsh accent colors with watercolor equivalents */
+  .text-indigo-500, .text-indigo-600, .text-indigo-700 { color: #5a8bad !important; }
+  .text-indigo-400 { color: #7ba8c9 !important; }
+  .text-indigo-300 { color: #9bc0d9 !important; }
+  .bg-indigo-50 { background-color: rgba(186, 213, 230, 0.4) !important; }
+  .bg-indigo-100 { background-color: rgba(155, 192, 217, 0.5) !important; }
+  .border-indigo-100 { border-color: rgba(123, 168, 201, 0.3) !important; }
+  .border-indigo-200 { border-color: rgba(123, 168, 201, 0.5) !important; }
+
+  .text-emerald-500, .text-emerald-600, .text-emerald-700 { color: #6b8e6b !important; }
+  .text-emerald-400 { color: #8aa88a !important; }
+  .bg-emerald-50 { background-color: rgba(186, 214, 186, 0.4) !important; }
+  .bg-emerald-100 { background-color: rgba(164, 194, 164, 0.5) !important; }
+
+  .text-amber-500, .text-amber-600, .text-amber-700 { color: #c9903e !important; }
+  .text-amber-400 { color: #d4a84a !important; }
+  .bg-amber-50 { background-color: rgba(237, 214, 170, 0.45) !important; }
+  .bg-amber-100 { background-color: rgba(232, 196, 148, 0.55) !important; }
+  .border-amber-100 { border-color: rgba(212, 168, 74, 0.3) !important; }
+  .border-amber-200 { border-color: rgba(212, 168, 74, 0.5) !important; }
+
+  .text-rose-400, .text-rose-500, .text-rose-600 { color: #c06b6b !important; }
+  .bg-rose-50 { background-color: rgba(219, 178, 178, 0.35) !important; }
+  .bg-rose-100 { background-color: rgba(212, 138, 138, 0.4) !important; }
 }
