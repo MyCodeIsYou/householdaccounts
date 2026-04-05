@@ -36,47 +36,33 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
 
     setIsLoading(true)
 
-    if (appRole === 'super_admin') {
-      // super_admin은 전체 그룹 목록 로드
-      supabase
-        .from('households')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .then(({ data, error }) => {
-          if (!error && data) setHouseholds(data as Household[])
-          // super_admin은 개인 모드로 시작
-          setActiveHouseholdIdState(null)
+    // 모든 사용자(super_admin 포함) 자신이 속한 그룹만 로드
+    // 전체 그룹 조회는 관리자 전용 페이지에서 별도로 처리
+    supabase
+      .from('household_members')
+      .select('household_id, households(id, name, owner_id, created_at)')
+      .eq('user_id', user.id)
+      .then(({ data, error }) => {
+        if (error || !data) {
           setIsLoading(false)
-        })
-    } else {
-      // 일반 사용자: 자신이 속한 그룹만
-      supabase
-        .from('household_members')
-        .select('household_id, households(id, name, owner_id, created_at)')
-        .eq('user_id', user.id)
-        .then(({ data, error }) => {
-          if (error || !data) {
-            setIsLoading(false)
-            return
-          }
-          const list: Household[] = data
-            .map((row: { households: Household | Household[] | null }) =>
-              Array.isArray(row.households) ? row.households[0] : row.households
-            )
-            .filter((h): h is Household => h != null)
-          setHouseholds(list)
+          return
+        }
+        const list: Household[] = data
+          .map((row: { households: Household | Household[] | null }) =>
+            Array.isArray(row.households) ? row.households[0] : row.households
+          )
+          .filter((h): h is Household => h != null)
+        setHouseholds(list)
 
-          // 저장된 선택 복원
-          const savedKey = `household:${user.id}`
-          const saved = localStorage.getItem(savedKey)
-          if (saved && list.some(h => h.id === saved)) {
-            setActiveHouseholdIdState(saved)
-          } else {
-            setActiveHouseholdIdState(null)
-          }
-          setIsLoading(false)
-        })
-    }
+        const savedKey = `household:${user.id}`
+        const saved = localStorage.getItem(savedKey)
+        if (saved && list.some(h => h.id === saved)) {
+          setActiveHouseholdIdState(saved)
+        } else {
+          setActiveHouseholdIdState(null)
+        }
+        setIsLoading(false)
+      })
   }, [user?.id, appRole])
 
   const qc = useQueryClient()

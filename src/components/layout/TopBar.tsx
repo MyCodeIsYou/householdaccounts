@@ -1,7 +1,8 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { useHousehold } from '@/context/HouseholdContext'
 import { Button } from '@/components/ui/button'
-import { LogOut, Menu, User } from 'lucide-react'
+import { LogOut, Menu, User, Users, UserCircle } from 'lucide-react'
 
 const pageTitles: Record<string, { title: string; desc: string }> = {
   '/':                { title: '대시보드',       desc: '자산 현황 및 최근 거래 요약' },
@@ -18,6 +19,7 @@ const pageTitles: Record<string, { title: string; desc: string }> = {
   '/admin/users':     { title: '사용자 관리',        desc: '앱 사용자 및 권한 관리' },
   '/admin/menus':     { title: '메뉴 관리',          desc: '내비게이션 메뉴 표시 설정' },
   '/admin/banks':     { title: '은행/계좌 종류 관리', desc: '은행·기관 및 계좌 종류 설정' },
+  '/admin/households':{ title: '그룹 관리 (관리자)',  desc: '모든 그룹 및 멤버 관리' },
   '/support':         { title: '고객센터',           desc: '1:1 문의 및 답변 확인' },
 }
 
@@ -25,9 +27,14 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { user, profile, signOut } = useAuth()
+  const { activeHouseholdId, households } = useHousehold()
   const page = pageTitles[pathname] ?? { title: '가계부', desc: '' }
   const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? ''
   const initials = displayName.slice(0, 2).toUpperCase()
+
+  const activeHousehold = households.find(h => h.id === activeHouseholdId)
+  const scopeLabel = activeHousehold?.name ?? '개인 가계부'
+  const isGroup = !!activeHouseholdId
 
   return (
     <header className="h-16 bg-white border-b flex items-center justify-between px-4 md:px-6 shrink-0 card-shadow">
@@ -38,9 +45,28 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <div>
-          <h1 className="text-base font-semibold text-gray-900 leading-tight">{page.title}</h1>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-base font-semibold text-gray-900 leading-tight truncate">{page.title}</h1>
+            <span
+              className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                isGroup
+                  ? 'bg-indigo-50 text-indigo-600 border border-indigo-100'
+                  : 'bg-amber-50 text-amber-600 border border-amber-100'
+              }`}
+            >
+              {isGroup ? <Users className="w-2.5 h-2.5" /> : <UserCircle className="w-2.5 h-2.5" />}
+              {scopeLabel}
+            </span>
+          </div>
           {page.desc && <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">{page.desc}</p>}
+          {/* 모바일용 */}
+          <div className="sm:hidden flex items-center gap-1 mt-0.5">
+            {isGroup ? <Users className="w-3 h-3 text-indigo-500" /> : <UserCircle className="w-3 h-3 text-amber-500" />}
+            <span className={`text-[10px] font-medium truncate ${isGroup ? 'text-indigo-600' : 'text-amber-600'}`}>
+              {scopeLabel}
+            </span>
+          </div>
         </div>
       </div>
 

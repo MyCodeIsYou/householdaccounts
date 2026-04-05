@@ -38,11 +38,7 @@ export function useHouseholds() {
   const leave = useMutation({
     mutationFn: async (householdId: string) => {
       if (!user) throw new Error('로그인이 필요합니다')
-      const { error } = await supabase
-        .from('household_members')
-        .delete()
-        .eq('household_id', householdId)
-        .eq('user_id', user.id)
+      const { error } = await supabase.rpc('leave_household', { p_household_id: householdId })
       if (error) throw error
     },
     onSuccess: (_data, householdId) => {

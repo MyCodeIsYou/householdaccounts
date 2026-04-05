@@ -181,6 +181,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
               { to: '/admin/users', label: '사용자 관리', Icon: Shield },
               { to: '/admin/menus', label: '메뉴 관리',   Icon: Settings },
               { to: '/admin/banks', label: '은행/계좌 관리', Icon: Wallet },
+              { to: '/admin/households', label: '그룹 관리', Icon: Users },
             ].map(({ to, label, Icon }) => (
               <NavLink
                 key={to}

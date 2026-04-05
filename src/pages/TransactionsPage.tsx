@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useDragScroll } from '@/hooks/useDragScroll'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useCategories } from '@/hooks/useCategories'
 import { useAccounts } from '@/hooks/useAccounts'
@@ -65,6 +66,7 @@ export default function TransactionsPage() {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Transaction | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm())
+  const dragScrollRef = useDragScroll<HTMLDivElement>()
 
   const topCategories = getTopLevel(form.type === 'transfer' ? undefined : form.type)
   const subCategories = form.category_id ? getChildren(form.category_id) : []
@@ -178,17 +180,17 @@ export default function TransactionsPage() {
       </div>
 
       {/* 거래 테이블 */}
-      <div className="bg-white rounded-2xl card-shadow overflow-x-auto">
-        <Table>
+      <div className="bg-white rounded-2xl card-shadow overflow-x-auto" ref={dragScrollRef}>
+        <Table className="!w-auto min-w-full">
           <TableHeader>
             <TableRow className="bg-gray-50 border-b border-gray-100">
-              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">날짜</TableHead>
-              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">구분</TableHead>
-              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">카테고리</TableHead>
-              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">금액</TableHead>
-              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">결제방법</TableHead>
-              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">메모</TableHead>
-              <TableHead className="w-20"></TableHead>
+              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">날짜</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">구분</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">카테고리</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">금액</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">결제방법</TableHead>
+              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">메모</TableHead>
+              <TableHead className="w-20 whitespace-nowrap"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -201,22 +203,22 @@ export default function TransactionsPage() {
             )}
             {transactions.map(t => (
               <TableRow key={t.id} className="hover:bg-gray-50 transition-colors">
-                <TableCell className="text-sm text-gray-600">{formatDateKo(t.txn_date)}</TableCell>
-                <TableCell>
+                <TableCell className="text-sm text-gray-600 whitespace-nowrap">{formatDateKo(t.txn_date)}</TableCell>
+                <TableCell className="whitespace-nowrap">
                   <Badge variant={t.type === 'income' ? 'income' : t.type === 'expense' ? 'expense' : 'secondary'}>
                     {t.type === 'income' ? '수입' : t.type === 'expense' ? '지출' : '이체'}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-sm text-gray-700">
+                <TableCell className="text-sm text-gray-700 whitespace-nowrap">
                   {t.category?.name ?? '—'}
                   {t.subcategory && <span className="text-gray-400"> / {t.subcategory.name}</span>}
                 </TableCell>
-                <TableCell className={`font-semibold ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                <TableCell className={`font-semibold whitespace-nowrap ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-500'}`}>
                   {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
                 </TableCell>
-                <TableCell className="text-sm text-gray-400">{t.payment_method ?? '—'}</TableCell>
-                <TableCell className="text-sm text-gray-400 max-w-[180px] truncate">{t.memo ?? '—'}</TableCell>
-                <TableCell>
+                <TableCell className="text-sm text-gray-400 whitespace-nowrap">{t.payment_method ?? '—'}</TableCell>
+                <TableCell className="text-sm text-gray-400 whitespace-nowrap">{t.memo ?? '—'}</TableCell>
+                <TableCell className="whitespace-nowrap">
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)}>
                       <Pencil className="h-3.5 w-3.5" />
