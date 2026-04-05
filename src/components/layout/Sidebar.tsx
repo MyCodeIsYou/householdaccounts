@@ -36,8 +36,10 @@ const ROLE_RANK: Record<AppRole, number> = { user: 0, admin: 1, super_admin: 2 }
 
 function HouseholdSwitcher() {
   const { activeHouseholdId, households, setActiveHousehold, isViewingAsAdmin } = useHousehold()
+  const { profile } = useAuth()
   const [open, setOpen] = useState(false)
 
+  const defaultId = profile?.default_household_id ?? null
   const activeHousehold = households.find(h => h.id === activeHouseholdId)
   const label = activeHousehold?.name ?? '내 가계부 (개인)'
   const isGroup = !!activeHouseholdId
@@ -58,6 +60,9 @@ function HouseholdSwitcher() {
           }
         </span>
         <span className="flex-1 text-xs font-medium text-white/80 truncate">{label}</span>
+        {defaultId === activeHouseholdId && (
+          <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-medium shrink-0">기본</span>
+        )}
         {isViewingAsAdmin && (
           <span className="text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-medium shrink-0">관리자</span>
         )}
@@ -72,6 +77,9 @@ function HouseholdSwitcher() {
           >
             <User className="h-3.5 w-3.5 text-white/40 shrink-0" />
             <span className="flex-1 text-xs text-white/70">내 가계부 (개인)</span>
+            {defaultId === null && (
+              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-medium shrink-0">기본</span>
+            )}
             {!activeHouseholdId && <Check className="h-3.5 w-3.5 text-indigo-400 shrink-0" />}
           </button>
 
@@ -86,6 +94,9 @@ function HouseholdSwitcher() {
                 >
                   <Users className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
                   <span className="flex-1 text-xs text-white/70 truncate">{hh.name}</span>
+                  {defaultId === hh.id && (
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-medium shrink-0">기본</span>
+                  )}
                   {activeHouseholdId === hh.id && <Check className="h-3.5 w-3.5 text-indigo-400 shrink-0" />}
                 </button>
               ))}

@@ -1,18 +1,26 @@
 import { useState, useEffect } from 'react'
-import { Check } from 'lucide-react'
+import { Check, Home, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
+import { useHousehold } from '@/context/HouseholdContext'
+import { useQueryClient } from '@tanstack/react-query'
 
 export default function ProfilePage() {
   const { user, profile } = useAuth()
+  const { households } = useHousehold()
+  const qc = useQueryClient()
   const [displayName, setDisplayName] = useState('')
+  const [defaultHouseholdId, setDefaultHouseholdId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [savingDefault, setSavingDefault] = useState(false)
+  const [savedDefault, setSavedDefault] = useState(false)
 
   useEffect(() => {
     setDisplayName(profile?.display_name ?? '')
-  }, [profile?.display_name])
+    setDefaultHouseholdId(profile?.default_household_id ?? null)
+  }, [profile?.display_name, profile?.default_household_id])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -29,6 +37,23 @@ export default function ProfilePage() {
     } else {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
+    }
+  }
+
+  async function saveDefaultHousehold(newId: string | null) {
+    if (!user) return
+    setSavingDefault(true)
+    setDefaultHouseholdId(newId)
+    const { error } = await supabase
+      .from('profiles')
+      .update({ default_household_id: newId })
+      .eq('id', user.id)
+    setSavingDefault(false)
+    if (!error) {
+      // 프로필 재조회 트리거
+      qc.invalidateQueries({ queryKey: ['profile'] })
+      setSavedDefault(true)
+      setTimeout(() => setSavedDefault(false), 2000)
     }
   }
 
@@ -100,6 +125,63 @@ export default function ProfilePage() {
             )}
           </button>
         </form>
+      </div>
+
+      {/* 기본 가계부 설정 */}
+      <div className="bg-white rounded-2xl card-shadow p-6">
+        <h3 className="text-sm font-semibold text-gray-700 mb-1">기본 가계부</h3>
+        <p className="text-xs text-gray-400 mb-4">로그인 시 자동으로 선택될 가계부입니다</p>
+        <div className="space-y-2">
+          {/* 개인 가계부 */}
+          <button
+            onClick={() => saveDefaultHousehold(null)}
+            disabled={savingDefault}
+            className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+              defaultHouseholdId === null
+                ? 'border-amber-300 bg-amber-50/60'
+                : 'border-gray-100 hover:bg-gray-50'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                defaultHouseholdId === null ? 'bg-amber-100' : 'bg-gray-100'
+              }`}>
+                <Home className={`w-4 h-4 ${defaultHouseholdId === null ? 'text-amber-600' : 'text-gray-400'}`} />
+              </div>
+              <span className="text-sm font-medium text-gray-800">개인 가계부</span>
+            </div>
+            {defaultHouseholdId === null && <Check className="w-4 h-4 text-amber-600" />}
+          </button>
+
+          {/* 그룹 가계부 목록 */}
+          {households.map(hh => (
+            <button
+              key={hh.id}
+              onClick={() => saveDefaultHousehold(hh.id)}
+              disabled={savingDefault}
+              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+                defaultHouseholdId === hh.id
+                  ? 'border-sage bg-emerald-50/40'
+                  : 'border-gray-100 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                  defaultHouseholdId === hh.id ? 'bg-emerald-100' : 'bg-gray-100'
+                }`}>
+                  <Users className={`w-4 h-4 ${defaultHouseholdId === hh.id ? 'text-sage' : 'text-gray-400'}`} />
+                </div>
+                <span className="text-sm font-medium text-gray-800">{hh.name}</span>
+              </div>
+              {defaultHouseholdId === hh.id && <Check className="w-4 h-4 text-sage" />}
+            </button>
+          ))}
+        </div>
+        {savedDefault && (
+          <p className="text-xs text-sage mt-3 flex items-center gap-1">
+            <Check className="w-3 h-3" /> 기본 가계부가 변경되었습니다
+          </p>
+        )}
       </div>
 
       {/* 계정 정보 */}

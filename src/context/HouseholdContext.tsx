@@ -22,22 +22,22 @@ interface HouseholdContextValue {
 const HouseholdContext = createContext<HouseholdContextValue | undefined>(undefined)
 
 export function HouseholdProvider({ children }: { children: React.ReactNode }) {
-  const { user, appRole } = useAuth()
+  const { user, appRole, profile } = useAuth()
   const [households, setHouseholds] = useState<Household[]>([])
   const [activeHouseholdId, setActiveHouseholdIdState] = useState<UUID | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
     if (!user) {
       setHouseholds([])
       setActiveHouseholdIdState(null)
+      setInitialized(false)
       return
     }
 
     setIsLoading(true)
 
-    // 모든 사용자(super_admin 포함) 자신이 속한 그룹만 로드
-    // 전체 그룹 조회는 관리자 전용 페이지에서 별도로 처리
     supabase
       .from('household_members')
       .select('household_id, households(id, name, owner_id, created_at)')
@@ -54,16 +54,25 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
           .filter((h): h is Household => h != null)
         setHouseholds(list)
 
-        const savedKey = `household:${user.id}`
-        const saved = localStorage.getItem(savedKey)
-        if (saved && list.some(h => h.id === saved)) {
-          setActiveHouseholdIdState(saved)
-        } else {
-          setActiveHouseholdIdState(null)
+        // 최초 1회만 기본 가계부 결정
+        // 우선순위: localStorage(세션 연속성) → profile.default_household_id → 개인 모드
+        if (!initialized) {
+          const savedKey = `household:${user.id}`
+          const saved = localStorage.getItem(savedKey)
+          if (saved === 'personal') {
+            setActiveHouseholdIdState(null)
+          } else if (saved && list.some(h => h.id === saved)) {
+            setActiveHouseholdIdState(saved)
+          } else if (profile?.default_household_id && list.some(h => h.id === profile.default_household_id)) {
+            setActiveHouseholdIdState(profile.default_household_id)
+          } else {
+            setActiveHouseholdIdState(null)
+          }
+          setInitialized(true)
         }
         setIsLoading(false)
       })
-  }, [user?.id, appRole])
+  }, [user?.id, appRole, profile?.default_household_id, initialized])
 
   const qc = useQueryClient()
 
@@ -72,13 +81,11 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
     // 캐시를 stale로 마킹하되 즉시 refetch하지 않음 (이전 filter로 잘못된 요청 방지)
     // React 재렌더 후 새 scopeKey로 자동 fetch됨
     qc.invalidateQueries({ refetchType: 'none' })
-    if (user && appRole !== 'super_admin') {
+    if (user) {
       const savedKey = `household:${user.id}`
-      if (id) {
-        localStorage.setItem(savedKey, id)
-      } else {
-        localStorage.removeItem(savedKey)
-      }
+      // 'personal' 센티널: 사용자가 의도적으로 개인 모드를 선택했음을 기억
+      // (다음 로그인 시 default_household_id를 무시하기 위함)
+      localStorage.setItem(savedKey, id ?? 'personal')
     }
   }
 

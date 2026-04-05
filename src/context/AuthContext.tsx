@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     supabase
       .from('profiles')
-      .select('id, display_name, app_role, created_at')
+      .select('id, display_name, app_role, default_household_id, created_at')
       .eq('id', userId)
       .single()
       .then(({ data, error }) => {

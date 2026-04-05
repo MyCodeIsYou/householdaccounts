@@ -14,8 +14,20 @@ const queryClient = new QueryClient({
   },
 })
 
+// 초기 진입 시 스플래시 표시 여부 결정
+// - 모바일: 항상 표시
+// - PC: 로그인 페이지(/login)인 경우에만 표시
+function shouldShowInitialSplash(): boolean {
+  if (typeof window === 'undefined') return false
+  const isMobile = window.matchMedia('(max-width: 767px)').matches
+  if (isMobile) return true
+  // HashRouter 기준 경로 체크
+  const hashPath = window.location.hash.replace(/^#/, '') || '/'
+  return hashPath.startsWith('/login')
+}
+
 export default function App() {
-  const [showSplash, setShowSplash] = useState(true)
+  const [showSplash, setShowSplash] = useState(shouldShowInitialSplash)
 
   return (
     <QueryClientProvider client={queryClient}>

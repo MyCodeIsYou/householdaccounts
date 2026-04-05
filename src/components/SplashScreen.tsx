@@ -15,17 +15,34 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
     }
   }, [onFinish])
 
+  const imgUrl = `${import.meta.env.BASE_URL}household.png`
+
   return (
     <div
-      className={`fixed inset-0 z-[9999] bg-black transition-opacity ease-in-out ${
+      className={`fixed inset-0 z-[9999] transition-opacity ease-in-out ${
         fadeOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
       style={{ transitionDuration: `${FADE_DURATION}ms` }}
     >
+      {/* PC: 블러된 이미지를 배경으로 깔고, 원본은 contain으로 중앙 정렬 */}
+      <div
+        className="absolute inset-0 bg-center bg-cover scale-110 blur-2xl opacity-60"
+        style={{ backgroundImage: `url(${imgUrl})` }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/30" />
+
+      {/* 모바일: object-cover로 꽉 채움 */}
       <img
-        src={`${import.meta.env.BASE_URL}household.png`}
+        src={imgUrl}
         alt="가계부"
-        className="w-full h-full object-cover"
+        className="md:hidden relative w-full h-full object-cover"
+      />
+
+      {/* PC: object-contain으로 전체 표시 */}
+      <img
+        src={imgUrl}
+        alt="가계부"
+        className="hidden md:block relative w-full h-full object-contain"
       />
     </div>
   )

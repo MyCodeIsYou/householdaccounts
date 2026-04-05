@@ -41,6 +41,7 @@ export interface Profile {
   id: UUID
   display_name: string | null
   app_role: AppRole
+  default_household_id: UUID | null
   created_at: ISOTimestamp
 }
 
