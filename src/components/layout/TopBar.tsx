@@ -7,6 +7,7 @@ import { LogOut, Menu, User, Users, UserCircle } from 'lucide-react'
 const pageTitles: Record<string, { title: string; desc: string }> = {
   '/':                { title: '대시보드',       desc: '자산 현황 및 최근 거래 요약' },
   '/accounts':        { title: '계좌 관리',       desc: '은행 및 투자 계좌 잔액 관리' },
+  '/liabilities':     { title: '부채 관리',       desc: '대출 및 부채 현황 · 순자산 계산' },
   '/asset-chart':     { title: '자산 변화 그래프', desc: '날짜별 총 자산 추이' },
   '/annual-plan':     { title: '연간 자금 계획표', desc: '월별 수입·지출 계획 vs 실적' },
   '/transactions':    { title: '수입/지출 내역',  desc: '거래 내역 입력 및 조회' },

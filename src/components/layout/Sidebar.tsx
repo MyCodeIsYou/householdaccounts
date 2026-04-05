@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Wallet, TrendingUp, CalendarDays,
+  LayoutDashboard, Wallet, TrendingUp, TrendingDown, CalendarDays,
   FileText, BarChart3, Gift, Lock, CreditCard,
   Users, ChevronDown, User, Check, Shield, Settings, MessageCircle,
 } from 'lucide-react'
@@ -13,7 +13,7 @@ import type { AppRole } from '@/types'
 
 // 아이콘 이름 → Lucide 컴포넌트 매핑
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  LayoutDashboard, Wallet, TrendingUp, CalendarDays,
+  LayoutDashboard, Wallet, TrendingUp, TrendingDown, CalendarDays,
   FileText, BarChart3, Gift, Lock, CreditCard,
   Users, Shield, Settings, MessageCircle,
 }
@@ -22,7 +22,8 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 const FALLBACK_MENUS = [
   { menu_key: 'dashboard',       label: '대시보드',   path: '/',                icon_name: 'LayoutDashboard', min_role: 'user' as AppRole, is_enabled: true, display_order: 1 },
   { menu_key: 'accounts',        label: '계좌 관리',   path: '/accounts',        icon_name: 'Wallet',          min_role: 'user' as AppRole, is_enabled: true, display_order: 2 },
-  { menu_key: 'asset-chart',     label: '자산 변화',   path: '/asset-chart',     icon_name: 'TrendingUp',      min_role: 'user' as AppRole, is_enabled: true, display_order: 3 },
+  { menu_key: 'liabilities',     label: '부채 관리',   path: '/liabilities',     icon_name: 'TrendingDown',    min_role: 'user' as AppRole, is_enabled: true, display_order: 3 },
+  { menu_key: 'asset-chart',     label: '자산 변화',   path: '/asset-chart',     icon_name: 'TrendingUp',      min_role: 'user' as AppRole, is_enabled: true, display_order: 4 },
   { menu_key: 'annual-plan',     label: '연간 계획표', path: '/annual-plan',     icon_name: 'CalendarDays',    min_role: 'user' as AppRole, is_enabled: true, display_order: 4 },
   { menu_key: 'transactions',    label: '수입/지출',   path: '/transactions',    icon_name: 'FileText',        min_role: 'user' as AppRole, is_enabled: true, display_order: 5 },
   { menu_key: 'monthly-summary', label: '월별 합계',   path: '/monthly-summary', icon_name: 'BarChart3',       min_role: 'user' as AppRole, is_enabled: true, display_order: 6 },

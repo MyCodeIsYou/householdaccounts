@@ -1,4 +1,5 @@
 import { useAccounts } from '@/hooks/useAccounts'
+import { useLiabilities } from '@/hooks/useLiabilities'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useMonthlySummary } from '@/hooks/useMonthlySummary'
 import { Badge } from '@/components/ui/badge'
@@ -14,8 +15,8 @@ const { year, month } = getCurrentYearMonth()
 
 const statCards = [
   {
-    key: 'asset',
-    label: '총 자산',
+    key: 'netWorth',
+    label: '순자산',
     icon: Wallet,
     gradient: 'gradient-asset',
     textColor: 'text-amber-600',
@@ -49,11 +50,12 @@ const statCards = [
 
 export default function DashboardPage() {
   const { data: accounts = [], totalBalance } = useAccounts()
+  const { totalBalance: totalLiability } = useLiabilities()
   const { transactions, totalIncome, totalExpense } = useTransactions({ year, month })
   const { data: monthlySummary = [] } = useMonthlySummary(year)
 
   const values: Record<string, number> = {
-    asset: totalBalance,
+    netWorth: totalBalance - totalLiability,
     income: totalIncome,
     expense: totalExpense,
     balance: totalIncome - totalExpense,

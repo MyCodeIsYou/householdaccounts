@@ -4,6 +4,7 @@ import LoginPage from '@/pages/LoginPage'
 import JoinPage from '@/pages/JoinPage'
 import DashboardPage from '@/pages/DashboardPage'
 import AccountsPage from '@/pages/AccountsPage'
+import LiabilitiesPage from '@/pages/LiabilitiesPage'
 import AssetChartPage from '@/pages/AssetChartPage'
 import AnnualPlanPage from '@/pages/AnnualPlanPage'
 import TransactionsPage from '@/pages/TransactionsPage'
@@ -28,6 +29,7 @@ export default function AppRouter() {
         <Route path="/" element={<AppShell />}>
           <Route index element={<DashboardPage />} />
           <Route path="accounts" element={<AccountsPage />} />
+          <Route path="liabilities" element={<LiabilitiesPage />} />
           <Route path="asset-chart" element={<AssetChartPage />} />
           <Route path="annual-plan" element={<AnnualPlanPage />} />
           <Route path="transactions" element={<TransactionsPage />} />

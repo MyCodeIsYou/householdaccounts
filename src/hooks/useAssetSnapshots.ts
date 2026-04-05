@@ -26,14 +26,31 @@ export function useAssetSnapshots(dateFrom?: string, dateTo?: string) {
   const upsert = useMutation({
     mutationFn: async ({ snapshot_date, total_amount }: { snapshot_date: string; total_amount: number }) => {
       if (!user) throw new Error('로그인이 필요합니다')
-      const conflictCol = insertScope.household_id ? 'household_id,snapshot_date' : 'user_id,snapshot_date'
-      const { error } = await supabase
+      // partial unique index는 PostgREST의 on_conflict가 지원하지 않으므로 수동 select → update/insert
+      let existingQuery = supabase
         .from('asset_snapshots')
-        .upsert(
-          { ...insertScope, snapshot_date, total_amount },
-          { onConflict: conflictCol }
-        )
-      if (error) throw error
+        .select('id')
+        .eq('snapshot_date', snapshot_date)
+      if (insertScope.household_id) {
+        existingQuery = existingQuery.eq('household_id', insertScope.household_id)
+      } else {
+        existingQuery = existingQuery.eq('user_id', insertScope.user_id!).is('household_id', null)
+      }
+      const { data: existing, error: selectErr } = await existingQuery.maybeSingle()
+      if (selectErr) throw selectErr
+
+      if (existing) {
+        const { error } = await supabase
+          .from('asset_snapshots')
+          .update({ total_amount })
+          .eq('id', existing.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase
+          .from('asset_snapshots')
+          .insert({ ...insertScope, snapshot_date, total_amount })
+        if (error) throw error
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['asset-snapshots', scopeKey] })

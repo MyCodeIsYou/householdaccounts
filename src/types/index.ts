@@ -97,6 +97,31 @@ export interface Account {
 export type AccountInsert = Omit<Account, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 export type AccountUpdate = Partial<AccountInsert>
 
+// ─── 부채 ────────────────────────────────────────────────────────────────────
+export type LiabilityType =
+  | '주택담보' | '전세자금' | '신용대출' | '마이너스통장' | '카드론' | '할부' | '학자금' | '기타'
+
+export interface Liability {
+  id: UUID
+  user_id: UUID
+  household_id?: UUID | null
+  name: string
+  liability_type: LiabilityType
+  creditor: string | null
+  balance: number
+  interest_rate: number | null
+  due_date: ISODate | null
+  currency: string
+  is_active: boolean
+  display_order: number
+  memo: string | null
+  created_at: ISOTimestamp
+  updated_at: ISOTimestamp
+}
+
+export type LiabilityInsert = Omit<Liability, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+export type LiabilityUpdate = Partial<LiabilityInsert>
+
 // ─── 은행/기관 ───────────────────────────────────────────────────────────────
 export interface BankInstitution {
   id: UUID
