@@ -27,29 +27,35 @@ function shouldShowInitialSplash(): boolean {
   return hashPath.startsWith('/login')
 }
 
+// Supabase recovery URL 감지 (#access_token=...&type=recovery)
+function isRecoveryUrl(): boolean {
+  return window.location.hash.includes('type=recovery')
+}
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(shouldShowInitialSplash)
-
-  const [recoveryPending, setRecoveryPending] = useState(() =>
-    window.location.hash.includes('type=recovery')
-  )
+  const [recoveryPending, setRecoveryPending] = useState(isRecoveryUrl)
 
   // Supabase 비밀번호 재설정 리다이렉트 감지
+  // Supabase가 #access_token=xxx&type=recovery 해시로 리다이렉트함
+  // → Supabase JS가 토큰을 파싱하고 세션을 만든 뒤 PASSWORD_RECOVERY 이벤트 발생
+  // → 그때 해시를 #/reset-password로 변경
   useEffect(() => {
     if (!recoveryPending) return
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
-        // 세션이 확실히 준비된 후 이동
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // Supabase가 토큰을 이미 처리하고 세션을 만든 상태
+        // 이제 안전하게 해시만 변경 (페이지 리로드 없이)
         setRecoveryPending(false)
-        window.location.replace(`${window.location.pathname}#/reset-password`)
+        window.location.hash = '#/reset-password'
       }
     })
 
     // 10초 타임아웃 — 이벤트가 안 오면 로그인으로
     const timer = setTimeout(() => {
       setRecoveryPending(false)
-      window.location.replace(`${window.location.pathname}#/login`)
+      window.location.hash = '#/login'
     }, 10000)
 
     return () => {
@@ -58,7 +64,7 @@ export default function App() {
     }
   }, [recoveryPending])
 
-  // recovery 처리 중에는 라우터를 렌더하지 않음
+  // recovery 처리 중에는 라우터를 렌더하지 않음 (catch-all이 /login으로 보내는 것 방지)
   if (recoveryPending) {
     return (
       <div className="min-h-screen flex items-center justify-center">

@@ -13,29 +13,18 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  // App.tsx에서 PASSWORD_RECOVERY 이벤트 처리 후 여기로 옴 → 세션은 이미 존재
+  // 직접 URL 접근 시에는 세션 없으므로 로그인으로 보냄
   const [sessionReady, setSessionReady] = useState(false)
 
-  // App.tsx에서 recovery 처리 후 여기로 리다이렉트됨 — 세션 확인
   useEffect(() => {
-    let cancelled = false
-
-    const checkSession = async () => {
-      // 세션이 설정될 때까지 재시도 (최대 5초)
-      for (let i = 0; i < 10; i++) {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (cancelled) return
-        if (session) {
-          setSessionReady(true)
-          return
-        }
-        await new Promise(r => setTimeout(r, 500))
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSessionReady(true)
+      } else {
+        navigate('/login', { replace: true })
       }
-      // 끝까지 세션 없으면 로그인으로
-      if (!cancelled) navigate('/login', { replace: true })
-    }
-
-    checkSession()
-    return () => { cancelled = true }
+    })
   }, [navigate])
 
   async function handleSubmit(e: React.FormEvent) {
