@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Heart, Sparkles, Coffee } from 'lucide-react'
+import { Heart, Sparkles, Coffee, X } from 'lucide-react'
+import TermsOfServiceContent from '@/components/legal/TermsOfServiceContent'
+import PrivacyPolicyContent from '@/components/legal/PrivacyPolicyContent'
 
 export default function LoginPage() {
   const { signInWithEmail, signUpWithEmail } = useAuth()
@@ -14,11 +17,40 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [agreeTerms, setAgreeTerms] = useState(false)
+  const [agreePrivacy, setAgreePrivacy] = useState(false)
+  const [modalType, setModalType] = useState<'terms' | 'privacy' | null>(null)
+  const [showResetPassword, setShowResetPassword] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetMessage, setResetMessage] = useState<string | null>(null)
+
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault()
+    if (!resetEmail.trim()) return
+    setResetLoading(true)
+    setResetMessage(null)
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+      redirectTo: `${window.location.origin}${window.location.pathname}#/reset-password`,
+    })
+    setResetLoading(false)
+    if (error) {
+      setResetMessage(error.message)
+    } else {
+      setResetMessage('비밀번호 재설정 링크가 이메일로 발송되었습니다. 메일함을 확인해주세요.')
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
+
+    if (isSignUp && (!agreeTerms || !agreePrivacy)) {
+      setError('이용약관과 개인정보처리방침에 모두 동의해주세요.')
+      setLoading(false)
+      return
+    }
 
     const fn = isSignUp ? signUpWithEmail : signInWithEmail
     const { error } = await fn(email, password)
@@ -112,6 +144,32 @@ export default function LoginPage() {
                 className="h-11 rounded-2xl focus:border-sage"
               />
             </div>
+            {isSignUp && (
+              <div className="space-y-2">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreeTerms}
+                    onChange={e => setAgreeTerms(e.target.checked)}
+                    className="mt-0.5 rounded border-gray-300"
+                  />
+                  <span className="text-xs text-gray-600">
+                    <button type="button" onClick={() => setModalType('terms')} className="text-sage font-semibold underline">이용약관</button>에 동의합니다 (필수)
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreePrivacy}
+                    onChange={e => setAgreePrivacy(e.target.checked)}
+                    className="mt-0.5 rounded border-gray-300"
+                  />
+                  <span className="text-xs text-gray-600">
+                    <button type="button" onClick={() => setModalType('privacy')} className="text-sage font-semibold underline">개인정보처리방침</button>에 동의합니다 (필수)
+                  </span>
+                </label>
+              </div>
+            )}
             {error && (
               <div className="rounded-2xl bg-rose-50 border border-rose-100 px-4 py-3">
                 <p className="text-sm text-rose-600">{error}</p>
@@ -136,22 +194,66 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 flex items-center gap-2">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent to-amber-200 opacity-50" />
-            <span className="text-xs text-gray-400">or</span>
-            <div className="flex-1 h-px bg-gradient-to-l from-transparent to-amber-200 opacity-50" />
-          </div>
+          {!isSignUp && !showResetPassword && (
+            <div className="mt-3 text-right">
+              <button
+                type="button"
+                onClick={() => { setShowResetPassword(true); setResetEmail(email); setResetMessage(null) }}
+                className="text-xs text-gray-400 hover:text-sage hover:underline"
+              >
+                비밀번호를 잊으셨나요?
+              </button>
+            </div>
+          )}
 
-          <div className="mt-5 text-center text-sm text-gray-500">
+          {showResetPassword && (
+            <div className="mt-4 p-4 rounded-2xl bg-amber-50/60 border border-amber-200/50 space-y-3">
+              <p className="text-xs font-medium text-chocolate">비밀번호 재설정 링크를 보내드립니다.</p>
+              <form onSubmit={handleResetPassword} className="space-y-3">
+                <Input
+                  type="email"
+                  placeholder="가입한 이메일 주소"
+                  value={resetEmail}
+                  onChange={e => setResetEmail(e.target.value)}
+                  required
+                  className="h-10 rounded-2xl text-sm"
+                />
+                {resetMessage && (
+                  <p className={`text-xs ${resetMessage.includes('발송') ? 'text-sage' : 'text-rose-500'}`}>
+                    {resetMessage}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    disabled={resetLoading}
+                    className="flex-1 h-9 rounded-2xl gradient-primary text-white text-sm border-0 hover:opacity-90"
+                  >
+                    {resetLoading ? '발송 중...' : '재설정 링크 발송'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => { setShowResetPassword(false); setResetMessage(null) }}
+                    className="h-9 rounded-2xl text-sm"
+                  >
+                    취소
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="mt-6 text-center text-sm text-gray-500">
             {isSignUp ? (
               <>이미 계정이 있으신가요?{' '}
-                <button className="text-sage font-semibold hover:underline" onClick={() => setIsSignUp(false)}>
+                <button className="text-sage font-semibold hover:underline" onClick={() => { setIsSignUp(false); setShowResetPassword(false) }}>
                   로그인하기 →
                 </button>
               </>
             ) : (
               <>처음 오셨나요?{' '}
-                <button className="text-sage font-semibold hover:underline" onClick={() => setIsSignUp(true)}>
+                <button className="text-sage font-semibold hover:underline" onClick={() => { setIsSignUp(true); setShowResetPassword(false) }}>
                   회원가입하기 →
                 </button>
               </>
@@ -164,6 +266,34 @@ export default function LoginPage() {
           "작은 기록이 모여 큰 이야기가 됩니다"
         </p>
       </div>
+
+      {/* 이용약관 / 개인정보처리방침 모달 */}
+      {modalType && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setModalType(null)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="relative bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-5 pb-0">
+              <h2 className="text-base font-bold text-gray-900">
+                {modalType === 'terms' ? '이용약관' : '개인정보처리방침'}
+              </h2>
+              <button
+                onClick={() => setModalType(null)}
+                className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-5 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400"
+              style={{ scrollbarWidth: 'thin', scrollbarColor: '#d1d5db transparent' }}
+            >
+              {modalType === 'terms' ? <TermsOfServiceContent /> : <PrivacyPolicyContent />}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

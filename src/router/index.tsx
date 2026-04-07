@@ -20,6 +20,9 @@ import AdminHouseholdsPage from '@/pages/AdminHouseholdsPage'
 import SupportPage from '@/pages/SupportPage'
 import ProfilePage from '@/pages/ProfilePage'
 import ExcelToHwpxPage from '@/pages/ExcelToHwpxPage'
+import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage'
+import TermsOfServicePage from '@/pages/TermsOfServicePage'
+import ResetPasswordPage from '@/pages/ResetPasswordPage'
 
 export default function AppRouter() {
   return (
@@ -28,6 +31,9 @@ export default function AppRouter() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/join/:token" element={<JoinPage />} />
         <Route path="/excel-to-hwpx" element={<ExcelToHwpxPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsOfServicePage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/" element={<AppShell />}>
           <Route index element={<DashboardPage />} />
           <Route path="accounts" element={<AccountsPage />} />

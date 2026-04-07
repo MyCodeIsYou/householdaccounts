@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react'
-import { Check, Home, Users } from 'lucide-react'
+import { Check, Home, Users, AlertTriangle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
 import { useHousehold } from '@/context/HouseholdContext'
 import { useQueryClient } from '@tanstack/react-query'
 
 export default function ProfilePage() {
-  const { user, profile } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const { households } = useHousehold()
+  const navigate = useNavigate()
   const qc = useQueryClient()
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
   const [displayName, setDisplayName] = useState('')
   const [defaultHouseholdId, setDefaultHouseholdId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -55,6 +60,19 @@ export default function ProfilePage() {
       setSavedDefault(true)
       setTimeout(() => setSavedDefault(false), 2000)
     }
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteConfirmText !== '탈퇴합니다') return
+    setDeleting(true)
+    const { error } = await supabase.rpc('delete_own_account')
+    if (error) {
+      alert('탈퇴 처리 중 오류가 발생했습니다: ' + error.message)
+      setDeleting(false)
+      return
+    }
+    await signOut()
+    navigate('/login', { replace: true })
   }
 
   const initials = (profile?.display_name ?? user?.email ?? '?').slice(0, 2).toUpperCase()
@@ -201,6 +219,53 @@ export default function ProfilePage() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* 회원 탈퇴 */}
+      <div className="bg-white rounded-2xl card-shadow p-6">
+        <h3 className="text-sm font-semibold text-red-600 mb-1 flex items-center gap-1.5">
+          <AlertTriangle className="w-4 h-4" /> 회원 탈퇴
+        </h3>
+        <p className="text-xs text-gray-400 mb-4">
+          탈퇴 시 모든 데이터(거래내역, 자산, 가계부 등)가 즉시 삭제되며 복구할 수 없습니다.
+        </p>
+
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="px-4 py-2 rounded-xl border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-colors"
+          >
+            회원 탈퇴하기
+          </button>
+        ) : (
+          <div className="space-y-3 p-4 rounded-xl bg-red-50 border border-red-200">
+            <p className="text-sm text-red-700 font-medium">
+              정말 탈퇴하시겠습니까? 아래에 "탈퇴합니다"를 입력해주세요.
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder="탈퇴합니다"
+              className="w-full h-10 px-3 rounded-xl border border-red-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmText !== '탈퇴합니다' || deleting}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-40 transition-colors"
+              >
+                {deleting ? '처리 중...' : '탈퇴 확인'}
+              </button>
+              <button
+                onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
+                className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
