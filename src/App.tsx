@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/context/AuthContext'
 import { HouseholdProvider } from '@/context/HouseholdContext'
 import AppRouter from '@/router/index'
 import SplashScreen from '@/components/SplashScreen'
+import { supabase } from '@/lib/supabase'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +29,21 @@ function shouldShowInitialSplash(): boolean {
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(shouldShowInitialSplash)
+
+  // Supabase 비밀번호 재설정 리다이렉트 감지
+  // URL 해시에 type=recovery가 있으면 #/reset-password로 이동
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.includes('type=recovery')) {
+      // Supabase가 세션을 처리할 시간을 준 뒤 리다이렉트
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          window.location.hash = '#/reset-password'
+        }
+      })
+      return () => subscription.unsubscribe()
+    }
+  }, [])
 
   return (
     <QueryClientProvider client={queryClient}>
