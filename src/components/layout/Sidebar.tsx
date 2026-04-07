@@ -141,7 +141,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
       <div className="mx-4 h-px bg-white/10 shrink-0" />
 
       {/* 내비게이션 */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5 sidebar-scroll">
         <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-3 pb-2 pt-1">
           메뉴
         </p>
