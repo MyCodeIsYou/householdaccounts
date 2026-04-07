@@ -12,7 +12,6 @@ function calcIncomeTax(monthlyTaxable: number): number {
 
 export default function SalaryCalculatorPage() {
   const [annualSalary, setAnnualSalary] = useState('')
-  const [includeBonus, setIncludeBonus] = useState(false)
   const [dependents, setDependents] = useState(1)
 
   const result = useMemo(() => {
