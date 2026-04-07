@@ -15,22 +15,17 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [sessionReady, setSessionReady] = useState(false)
 
-  // Supabase가 리다이렉트 시 URL fragment에 access_token을 포함하여 보냄
-  // onAuthStateChange로 PASSWORD_RECOVERY 이벤트를 감지
+  // App.tsx에서 recovery 처리 후 여기로 리다이렉트됨 — 세션 확인
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
         setSessionReady(true)
+      } else {
+        // 세션 없으면 로그인으로
+        navigate('/login', { replace: true })
       }
     })
-
-    // 이미 세션이 있는 경우 (페이지 새로고침 등)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setSessionReady(true)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
+  }, [navigate])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
