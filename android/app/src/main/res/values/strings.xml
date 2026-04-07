@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">우리집 가계부</string>
+    <string name="title_activity_main">우리집 가계부</string>
+    <string name="package_name">com.isit.householdaccounts</string>
+    <string name="custom_url_scheme">com.isit.householdaccounts</string>
+</resources>

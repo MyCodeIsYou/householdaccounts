@@ -4,7 +4,9 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/householdaccounts/',
+  // Capacitor 빌드 시: CAPACITOR=true npm run build
+  // GitHub Pages 빌드 시: 기본값
+  base: process.env.CAPACITOR ? './' : '/householdaccounts/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
