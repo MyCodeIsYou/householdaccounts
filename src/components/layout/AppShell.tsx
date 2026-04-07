@@ -5,7 +5,7 @@ import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 
 export default function AppShell() {
-  const { session, loading } = useAuth()
+  const { session, loading, isPasswordRecovery } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   if (loading) {
@@ -14,6 +14,10 @@ export default function AppShell() {
         <div className="text-gray-500">로딩 중...</div>
       </div>
     )
+  }
+
+  if (isPasswordRecovery) {
+    return <Navigate to="/reset-password" replace />
   }
 
   if (!session) {
