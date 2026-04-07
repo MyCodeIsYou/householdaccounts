@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 
 interface Rate {
   code: string
@@ -19,6 +20,11 @@ export default function ExchangeRatePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
+
+  // 그래프 상태
+  const [chartData, setChartData] = useState<Record<string, number | string>[]>([])
+  const [chartLoading, setChartLoading] = useState(false)
+  const [chartCurrency, setChartCurrency] = useState('USD')
 
   // 계산기 상태
   const [amount, setAmount] = useState('')
@@ -52,9 +58,40 @@ export default function ExchangeRatePage() {
     }
   }, [])
 
+  // 과거 30일 환율 데이터 (frankfurter.app)
+  const fetchChartData = useCallback(async (currency: string) => {
+    setChartLoading(true)
+    try {
+      const endDate = new Date()
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - 30)
+      const fmt = (d: Date) => d.toISOString().slice(0, 10)
+
+      const res = await fetch(
+        `https://api.frankfurter.app/${fmt(startDate)}..${fmt(endDate)}?from=${currency}&to=KRW`
+      )
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+
+      const points = Object.entries(data.rates).map(([date, r]) => ({
+        date: date.slice(5), // MM-DD
+        rate: Math.round((r as Record<string, number>).KRW * (currency === 'JPY' ? 100 : 1) * 100) / 100,
+      }))
+      setChartData(points)
+    } catch {
+      setChartData([])
+    } finally {
+      setChartLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     fetchRates()
   }, [fetchRates])
+
+  useEffect(() => {
+    fetchChartData(chartCurrency)
+  }, [chartCurrency, fetchChartData])
 
   // 환산 계산
   const convert = () => {
@@ -158,6 +195,71 @@ export default function ExchangeRatePage() {
           <p className="text-[10px] text-gray-400 mt-3 text-right">
             업데이트: {lastUpdated}
           </p>
+        )}
+      </div>
+
+      {/* 환율 변동 그래프 */}
+      <div className="bg-white rounded-2xl card-shadow p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-700">최근 30일 환율 변동</h2>
+          <div className="flex gap-1">
+            {CURRENCIES.map(c => (
+              <button
+                key={c.code}
+                onClick={() => setChartCurrency(c.code)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  chartCurrency === c.code
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                {c.flag} {c.code}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {chartLoading ? (
+          <div className="h-48 flex items-center justify-center">
+            <RefreshCw className="w-5 h-5 text-gray-300 animate-spin" />
+          </div>
+        ) : chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10, fill: '#9ca3af' }}
+                tickLine={false}
+                axisLine={{ stroke: '#e5e7eb' }}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: '#9ca3af' }}
+                tickLine={false}
+                axisLine={false}
+                domain={['auto', 'auto']}
+                tickFormatter={(v: number) => v.toLocaleString()}
+              />
+              <Tooltip
+                contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }}
+                formatter={(value) => [`${Number(value).toLocaleString()}원`, chartCurrency === 'JPY' ? '100엔' : '1단위']}
+                labelFormatter={(label) => `날짜: ${label}`}
+              />
+              <Line
+                type="monotone"
+                dataKey="rate"
+                stroke="#6366f1"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, fill: '#6366f1' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-48 flex items-center justify-center">
+            <p className="text-xs text-gray-400">환율 변동 데이터를 불러올 수 없습니다</p>
+          </div>
         )}
       </div>
 
