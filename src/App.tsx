@@ -30,20 +30,44 @@ function shouldShowInitialSplash(): boolean {
 export default function App() {
   const [showSplash, setShowSplash] = useState(shouldShowInitialSplash)
 
+  const [recoveryPending, setRecoveryPending] = useState(() =>
+    window.location.hash.includes('type=recovery')
+  )
+
   // Supabase 비밀번호 재설정 리다이렉트 감지
-  // URL 해시에 type=recovery가 있으면 #/reset-password로 이동
   useEffect(() => {
-    const hash = window.location.hash
-    if (hash.includes('type=recovery')) {
-      // Supabase가 세션을 처리할 시간을 준 뒤 리다이렉트
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-        if (event === 'PASSWORD_RECOVERY') {
-          window.location.hash = '#/reset-password'
-        }
-      })
-      return () => subscription.unsubscribe()
+    if (!recoveryPending) return
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        setRecoveryPending(false)
+        window.location.replace(`${window.location.pathname}#/reset-password`)
+      }
+    })
+
+    // 3초 타임아웃 — 이벤트가 안 오면 직접 이동
+    const timer = setTimeout(() => {
+      setRecoveryPending(false)
+      window.location.replace(`${window.location.pathname}#/reset-password`)
+    }, 3000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timer)
     }
-  }, [])
+  }, [recoveryPending])
+
+  // recovery 처리 중에는 라우터를 렌더하지 않음
+  if (recoveryPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-3 border-gray-300 border-t-gray-600 rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-gray-500">인증 확인 중...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
