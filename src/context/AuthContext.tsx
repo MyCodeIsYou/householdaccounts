@@ -24,19 +24,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setLoading(false)
-    })
+  // URL에 recovery 토큰이 있는지 확인 (Supabase가 #access_token=...&type=recovery 형태로 리다이렉트)
+  const isRecoveryUrl = window.location.hash.includes('type=recovery')
 
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       if (!session) setProfile(null)
       if (event === 'PASSWORD_RECOVERY') {
         setIsPasswordRecovery(true)
+        setLoading(false)
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
+        setLoading(false)
       }
     })
+
+    // recovery URL이 아닌 경우에만 getSession으로 loading 해제
+    // recovery URL인 경우 onAuthStateChange 이벤트를 기다림
+    if (!isRecoveryUrl) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session)
+        setLoading(false)
+      })
+    } else {
+      // recovery URL인 경우 15초 타임아웃 (안전장치)
+      const timer = setTimeout(() => setLoading(false), 15000)
+      return () => {
+        subscription.unsubscribe()
+        clearTimeout(timer)
+      }
+    }
 
     return () => subscription.unsubscribe()
   }, [])
