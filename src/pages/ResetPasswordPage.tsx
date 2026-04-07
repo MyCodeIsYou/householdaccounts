@@ -17,14 +17,25 @@ export default function ResetPasswordPage() {
 
   // App.tsx에서 recovery 처리 후 여기로 리다이렉트됨 — 세션 확인
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSessionReady(true)
-      } else {
-        // 세션 없으면 로그인으로
-        navigate('/login', { replace: true })
+    let cancelled = false
+
+    const checkSession = async () => {
+      // 세션이 설정될 때까지 재시도 (최대 5초)
+      for (let i = 0; i < 10; i++) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (cancelled) return
+        if (session) {
+          setSessionReady(true)
+          return
+        }
+        await new Promise(r => setTimeout(r, 500))
       }
-    })
+      // 끝까지 세션 없으면 로그인으로
+      if (!cancelled) navigate('/login', { replace: true })
+    }
+
+    checkSession()
+    return () => { cancelled = true }
   }, [navigate])
 
   async function handleSubmit(e: React.FormEvent) {

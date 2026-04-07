@@ -38,18 +38,19 @@ export default function App() {
   useEffect(() => {
     if (!recoveryPending) return
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
+        // 세션이 확실히 준비된 후 이동
         setRecoveryPending(false)
         window.location.replace(`${window.location.pathname}#/reset-password`)
       }
     })
 
-    // 3초 타임아웃 — 이벤트가 안 오면 직접 이동
+    // 10초 타임아웃 — 이벤트가 안 오면 로그인으로
     const timer = setTimeout(() => {
       setRecoveryPending(false)
-      window.location.replace(`${window.location.pathname}#/reset-password`)
-    }, 3000)
+      window.location.replace(`${window.location.pathname}#/login`)
+    }, 10000)
 
     return () => {
       subscription.unsubscribe()
