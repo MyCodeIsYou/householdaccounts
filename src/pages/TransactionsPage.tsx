@@ -14,7 +14,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, List, CalendarDays } from 'lucide-react'
+import CalendarView from '@/components/transactions/CalendarView'
 import { formatCurrency, formatDateKo, parseAmountInput, getCurrentYearMonth } from '@/lib/utils'
 import { PAYMENT_METHODS } from '@/lib/constants'
 import type { Transaction, TransactionInsert, TransactionType, PaymentMethod, TransactionFilters } from '@/types'
@@ -56,6 +57,7 @@ export default function TransactionsPage() {
   const [filterMonth, setFilterMonth] = useState(curMonth)
   const [filterType, setFilterType] = useState<TransactionFilters['type']>('all')
   const [keyword, setKeyword] = useState('')
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
 
   const filters: TransactionFilters = { year: filterYear, month: filterMonth, type: filterType, keyword: keyword || undefined }
   const { transactions, totalIncome, totalExpense, add, update, remove } = useTransactions(filters)
@@ -156,12 +158,44 @@ export default function TransactionsPage() {
           <Label className="text-xs text-gray-500 font-medium">검색 (메모)</Label>
           <Input placeholder="검색어 입력" value={keyword} onChange={e => setKeyword(e.target.value)} className="rounded-xl" />
         </div>
+        <div className="flex items-center gap-1 border rounded-xl p-0.5">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-gray-200 text-gray-800' : 'text-gray-400 hover:text-gray-600'}`}
+            title="리스트"
+          >
+            <List className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`p-1.5 rounded-lg transition-colors ${viewMode === 'calendar' ? 'bg-gray-200 text-gray-800' : 'text-gray-400 hover:text-gray-600'}`}
+            title="달력"
+          >
+            <CalendarDays className="h-4 w-4" />
+          </button>
+        </div>
         <Button onClick={openAdd} className="rounded-xl gradient-primary text-white border-0 shadow-sm hover:opacity-90">
           <Plus className="h-4 w-4" />
           거래 추가
         </Button>
       </div>
 
+      {viewMode === 'calendar' ? (
+        <CalendarView
+          transactions={transactions}
+          year={filterYear}
+          month={filterMonth}
+          onDateClick={(date) => {
+            const t = transactions.filter(t => t.txn_date === date)
+            if (t.length === 0) {
+              setForm({ ...emptyForm(), txn_date: date })
+              setEditing(null)
+              setOpen(true)
+            }
+          }}
+        />
+      ) : (
+      <>
       {/* 합계 요약 */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
@@ -247,6 +281,8 @@ export default function TransactionsPage() {
           </TableBody>
         </Table>
       </div>
+      </>
+      )}
 
       {/* 거래 추가/수정 다이얼로그 */}
       <Dialog open={open} onOpenChange={setOpen}>
