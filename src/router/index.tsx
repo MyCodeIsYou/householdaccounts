@@ -1,4 +1,5 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from '@/context/AuthContext'
 import AppShell from '@/components/layout/AppShell'
 import LoginPage from '@/pages/LoginPage'
 import JoinPage from '@/pages/JoinPage'
@@ -23,6 +24,29 @@ import ExcelToHwpxPage from '@/pages/ExcelToHwpxPage'
 import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage'
 import TermsOfServicePage from '@/pages/TermsOfServicePage'
 import ResetPasswordPage from '@/pages/ResetPasswordPage'
+
+// PASSWORD_RECOVERY 이벤트 감지 시 /reset-password로 리다이렉트
+// Supabase recovery URL(#access_token=...&type=recovery)은 라우트 매칭 실패 → catch-all로 옴
+function CatchAllRedirect() {
+  const { isPasswordRecovery, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-gray-500">인증 확인 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isPasswordRecovery) {
+    return <Navigate to="/reset-password" replace />
+  }
+
+  return <Navigate to="/" replace />
+}
 
 export default function AppRouter() {
   return (
@@ -53,7 +77,7 @@ export default function AppRouter() {
           <Route path="support" element={<SupportPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<CatchAllRedirect />} />
       </Routes>
     </HashRouter>
   )

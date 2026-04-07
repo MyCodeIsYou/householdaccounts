@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,24 +9,13 @@ import { Heart, Sparkles } from 'lucide-react'
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate()
+  const { session, isPasswordRecovery, clearPasswordRecovery } = useAuth()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  // App.tsx에서 PASSWORD_RECOVERY 이벤트 처리 후 여기로 옴 → 세션은 이미 존재
-  // 직접 URL 접근 시에는 세션 없으므로 로그인으로 보냄
-  const [sessionReady, setSessionReady] = useState(false)
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSessionReady(true)
-      } else {
-        navigate('/login', { replace: true })
-      }
-    })
-  }, [navigate])
+  const sessionReady = !!session && isPasswordRecovery
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -49,6 +39,7 @@ export default function ResetPasswordPage() {
       setError(error.message)
     } else {
       setSuccess(true)
+      clearPasswordRecovery()
       setTimeout(() => navigate('/login', { replace: true }), 2000)
     }
   }

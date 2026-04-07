@@ -9,9 +9,11 @@ interface AuthContextValue {
   profile: Profile | null
   appRole: AppRole
   loading: boolean
+  isPasswordRecovery: boolean
   signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>
   signUpWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
+  clearPasswordRecovery: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -20,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -27,13 +30,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       if (!session) setProfile(null)
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true)
+      }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  function clearPasswordRecovery() {
+    setIsPasswordRecovery(false)
+  }
 
   // Load profile whenever user changes
   useEffect(() => {
@@ -82,6 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithEmail,
       signUpWithEmail,
       signOut,
+      isPasswordRecovery,
+      clearPasswordRecovery,
     }}>
       {children}
     </AuthContext.Provider>
