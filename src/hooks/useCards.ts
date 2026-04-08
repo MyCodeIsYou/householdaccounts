@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useHouseholdFilter } from '@/hooks/useHouseholdFilter'
+import { syncCardNotifications, isNativeApp } from '@/lib/notifications'
 import type { Card } from '@/types'
 
 export function useCards() {
@@ -46,6 +48,12 @@ export function useCards() {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cards', scopeKey] }),
   })
+
+  // 카드 목록 변경 시 네이티브 앱에서 자동으로 알림 동기화
+  useEffect(() => {
+    if (!isNativeApp() || !query.data) return
+    syncCardNotifications(query.data)
+  }, [query.data])
 
   return { ...query, cards: query.data ?? [], add, update, remove }
 }

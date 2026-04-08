@@ -1,5 +1,12 @@
-import { Check, Palette } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Check, Palette, Bell, BellOff } from 'lucide-react'
 import { useTheme, type ThemeName } from '@/context/ThemeContext'
+import {
+  isNativeApp,
+  checkNotificationPermission,
+  requestNotificationPermission,
+  sendTestNotification,
+} from '@/lib/notifications'
 
 interface ThemeOption {
   id: ThemeName
@@ -49,6 +56,27 @@ const THEMES: ThemeOption[] = [
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
+  const [notifGranted, setNotifGranted] = useState(false)
+  const [notifLoading, setNotifLoading] = useState(false)
+  const [testMessage, setTestMessage] = useState<string | null>(null)
+  const isNative = isNativeApp()
+
+  useEffect(() => {
+    if (isNative) checkNotificationPermission().then(setNotifGranted)
+  }, [isNative])
+
+  async function handleEnableNotif() {
+    setNotifLoading(true)
+    const granted = await requestNotificationPermission()
+    setNotifGranted(granted)
+    setNotifLoading(false)
+  }
+
+  async function handleTestNotif() {
+    const ok = await sendTestNotification()
+    setTestMessage(ok ? '2초 후 테스트 알림이 옵니다!' : '알림 발송 실패')
+    setTimeout(() => setTestMessage(null), 3000)
+  }
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -121,6 +149,49 @@ export default function SettingsPage() {
           {THEMES.find(t => t.id === theme)?.name}
         </p>
       </div>
+
+      {/* 알림 설정 (앱 전용) */}
+      {isNative && (
+        <div className="bg-white rounded-2xl card-shadow p-6">
+          <div className="flex items-center gap-2 mb-1">
+            {notifGranted ? (
+              <Bell className="w-5 h-5 text-emerald-500" />
+            ) : (
+              <BellOff className="w-5 h-5 text-gray-400" />
+            )}
+            <h2 className="text-sm font-semibold text-gray-700">카드 결제일 알림</h2>
+          </div>
+          <p className="text-xs text-gray-400 mb-4">
+            등록된 카드의 결제일 하루 전 오전 9시에 알림을 받을 수 있어요.
+          </p>
+
+          {!notifGranted ? (
+            <button
+              onClick={handleEnableNotif}
+              disabled={notifLoading}
+              className="px-4 py-2 rounded-xl gradient-primary text-white text-sm font-semibold disabled:opacity-50"
+            >
+              {notifLoading ? '권한 요청 중...' : '알림 켜기'}
+            </button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
+                <Check className="w-3 h-3" /> 알림 활성화됨
+              </span>
+              <button
+                onClick={handleTestNotif}
+                className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50"
+              >
+                테스트 알림
+              </button>
+            </div>
+          )}
+
+          {testMessage && (
+            <p className="text-xs text-emerald-600 mt-2">{testMessage}</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
