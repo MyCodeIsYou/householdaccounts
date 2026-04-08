@@ -150,48 +150,55 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* 알림 설정 (앱 전용) */}
-      {isNative && (
-        <div className="bg-white rounded-2xl card-shadow p-6">
-          <div className="flex items-center gap-2 mb-1">
-            {notifGranted ? (
-              <Bell className="w-5 h-5 text-emerald-500" />
-            ) : (
-              <BellOff className="w-5 h-5 text-gray-400" />
-            )}
-            <h2 className="text-sm font-semibold text-gray-700">카드 결제일 알림</h2>
-          </div>
-          <p className="text-xs text-gray-400 mb-4">
-            등록된 카드의 결제일 하루 전 오전 9시에 알림을 받을 수 있어요.
-          </p>
-
-          {!notifGranted ? (
-            <button
-              onClick={handleEnableNotif}
-              disabled={notifLoading}
-              className="px-4 py-2 rounded-xl gradient-primary text-white text-sm font-semibold disabled:opacity-50"
-            >
-              {notifLoading ? '권한 요청 중...' : '알림 켜기'}
-            </button>
+      {/* 알림 설정 */}
+      <div className="bg-white rounded-2xl card-shadow p-6">
+        <div className="flex items-center gap-2 mb-1">
+          {notifGranted ? (
+            <Bell className="w-5 h-5 text-emerald-500" />
           ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
-                <Check className="w-3 h-3" /> 알림 활성화됨
-              </span>
-              <button
-                onClick={handleTestNotif}
-                className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50"
-              >
-                테스트 알림
-              </button>
-            </div>
+            <BellOff className="w-5 h-5 text-gray-400" />
           )}
-
-          {testMessage && (
-            <p className="text-xs text-emerald-600 mt-2">{testMessage}</p>
-          )}
+          <h2 className="text-sm font-semibold text-gray-700">카드 결제일 알림</h2>
         </div>
-      )}
+        <p className="text-xs text-gray-400 mb-4">
+          등록된 카드의 결제일 하루 전 오전 9시에 알림을 받을 수 있어요.
+        </p>
+
+        {!isNative ? (
+          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+            <p className="text-xs text-amber-700 font-medium">
+              📱 이 기능은 모바일 앱에서만 사용할 수 있어요.
+            </p>
+            <p className="text-[11px] text-amber-600 mt-1">
+              앱을 설치하면 카드 결제일 알림을 받을 수 있습니다.
+            </p>
+          </div>
+        ) : !notifGranted ? (
+          <button
+            onClick={handleEnableNotif}
+            disabled={notifLoading}
+            className="px-4 py-2 rounded-xl gradient-primary text-white text-sm font-semibold disabled:opacity-50"
+          >
+            {notifLoading ? '권한 요청 중...' : '알림 켜기'}
+          </button>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
+              <Check className="w-3 h-3" /> 알림 활성화됨
+            </span>
+            <button
+              onClick={handleTestNotif}
+              className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50"
+            >
+              테스트 알림
+            </button>
+          </div>
+        )}
+
+        {testMessage && (
+          <p className="text-xs text-emerald-600 mt-2">{testMessage}</p>
+        )}
+      </div>
     </div>
   )
 }
