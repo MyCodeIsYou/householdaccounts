@@ -26,6 +26,7 @@ import TermsOfServicePage from '@/pages/TermsOfServicePage'
 import ResetPasswordPage from '@/pages/ResetPasswordPage'
 import SalaryCalculatorPage from '@/pages/SalaryCalculatorPage'
 import ExchangeRatePage from '@/pages/ExchangeRatePage'
+import SettingsPage from '@/pages/SettingsPage'
 
 // PASSWORD_RECOVERY 이벤트 감지 시 /reset-password로 리다이렉트
 // Supabase recovery URL(#access_token=...&type=recovery)은 라우트 매칭 실패 → catch-all로 옴
@@ -80,6 +81,7 @@ export default function AppRouter() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="salary-calculator" element={<SalaryCalculatorPage />} />
           <Route path="exchange-rate" element={<ExchangeRatePage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<CatchAllRedirect />} />
       </Routes>

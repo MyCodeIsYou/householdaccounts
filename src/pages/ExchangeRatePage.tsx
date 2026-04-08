@@ -1,24 +1,40 @@
 import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { supabase } from '@/lib/supabase'
 
 interface Rate {
   code: string
   name: string
   flag: string
-  rate: number // 1 외화 = ? 원
+  rate: number // 1 외화 당 원화 (JPY는 100엔 당)
+  rateDate: string
 }
 
-const CURRENCIES: Omit<Rate, 'rate'>[] = [
-  { code: 'USD', name: '미국 달러', flag: '🇺🇸' },
-  { code: 'JPY', name: '일본 엔 (100엔)', flag: '🇯🇵' },
-  { code: 'EUR', name: '유로', flag: '🇪🇺' },
-]
+interface RateRow {
+  currency_code: string
+  currency_name: string
+  rate: number
+  rate_date: string
+}
+
+const CURRENCY_META: Record<string, { name: string; flag: string }> = {
+  USD: { name: '미국 달러', flag: '🇺🇸' },
+  JPY: { name: '일본 엔 (100엔)', flag: '🇯🇵' },
+  EUR: { name: '유로', flag: '🇪🇺' },
+}
+
+const CURRENCY_CODES = ['USD', 'JPY', 'EUR']
 
 export default function ExchangeRatePage() {
   const [rates, setRates] = useState<Rate[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
+
+  // 그래프 상태
+  const [chartCurrency, setChartCurrency] = useState('USD')
+  const [chartData, setChartData] = useState<{ date: string; rate: number }[]>([])
 
   // 계산기 상태
   const [amount, setAmount] = useState('')
@@ -29,22 +45,39 @@ export default function ExchangeRatePage() {
     setLoading(true)
     setError(null)
     try {
-      // exchangerate-api.com — 무료, CORS 지원, 키 불필요
-      const res = await fetch('https://open.er-api.com/v6/latest/KRW')
-      if (!res.ok) throw new Error('환율 정보를 가져올 수 없습니다')
-      const data = await res.json()
+      // 최근 30일 데이터 한 번에 조회 (그래프용 + 최신 환율용)
+      const { data, error: dbError } = await supabase
+        .from('exchange_rates')
+        .select('currency_code, currency_name, rate, rate_date')
+        .in('currency_code', CURRENCY_CODES)
+        .order('rate_date', { ascending: false })
+        .limit(150)
 
-      // open.er-api는 1 KRW = ? 외화 형태로 반환 → 역수로 1 외화 = ? 원
-      const newRates: Rate[] = CURRENCIES.map(c => {
-        const rawRate = data.rates[c.code]
-        if (c.code === 'JPY') {
-          return { ...c, rate: Math.round((100 / rawRate) * 100) / 100 }
+      if (dbError) throw dbError
+      if (!data || data.length === 0) {
+        throw new Error('환율 데이터가 없습니다. 잠시 후 다시 시도해주세요.')
+      }
+
+      const rows = data as RateRow[]
+
+      // 통화별 최신 환율
+      const latestByCode: Record<string, RateRow> = {}
+      for (const row of rows) {
+        if (!latestByCode[row.currency_code]) {
+          latestByCode[row.currency_code] = row
         }
-        return { ...c, rate: Math.round((1 / rawRate) * 100) / 100 }
-      })
+      }
+
+      const newRates: Rate[] = CURRENCY_CODES.map(code => ({
+        code,
+        name: CURRENCY_META[code].name,
+        flag: CURRENCY_META[code].flag,
+        rate: latestByCode[code]?.rate ?? 0,
+        rateDate: latestByCode[code]?.rate_date ?? '',
+      }))
 
       setRates(newRates)
-      setLastUpdated(new Date().toLocaleString('ko-KR'))
+      setLastUpdated(latestByCode[CURRENCY_CODES[0]]?.rate_date ?? null)
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -52,9 +85,32 @@ export default function ExchangeRatePage() {
     }
   }, [])
 
+  // 선택된 통화의 그래프 데이터 조회
+  const fetchChartData = useCallback(async (code: string) => {
+    const { data } = await supabase
+      .from('exchange_rates')
+      .select('rate, rate_date')
+      .eq('currency_code', code)
+      .order('rate_date', { ascending: true })
+      .limit(60)
+
+    if (data) {
+      setChartData(
+        (data as { rate: number; rate_date: string }[]).map(d => ({
+          date: d.rate_date.slice(5), // MM-DD
+          rate: d.rate,
+        }))
+      )
+    }
+  }, [])
+
   useEffect(() => {
     fetchRates()
   }, [fetchRates])
+
+  useEffect(() => {
+    fetchChartData(chartCurrency)
+  }, [chartCurrency, fetchChartData])
 
   // 환산 계산
   const convert = () => {
@@ -76,25 +132,21 @@ export default function ExchangeRatePage() {
 
   const converted = convert()
 
-  const allCurrencies = ['KRW', ...CURRENCIES.map(c => c.code)]
+  const allCurrencies = ['KRW', ...CURRENCY_CODES]
   const currencyLabel = (code: string) => {
     if (code === 'KRW') return '🇰🇷 원 (KRW)'
-    const c = CURRENCIES.find(c => c.code === code)
-    return c ? `${c.flag} ${c.name} (${c.code})` : code
+    const meta = CURRENCY_META[code]
+    return meta ? `${meta.flag} ${meta.name} (${code})` : code
   }
 
   const handleFromChange = (code: string) => {
     setFromCurrency(code)
-    if (code === toCurrency) {
-      setToCurrency(code === 'KRW' ? 'USD' : 'KRW')
-    }
+    if (code === toCurrency) setToCurrency(code === 'KRW' ? 'USD' : 'KRW')
   }
 
   const handleToChange = (code: string) => {
     setToCurrency(code)
-    if (code === fromCurrency) {
-      setFromCurrency(code === 'KRW' ? 'USD' : 'KRW')
-    }
+    if (code === fromCurrency) setFromCurrency(code === 'KRW' ? 'USD' : 'KRW')
   }
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,12 +161,12 @@ export default function ExchangeRatePage() {
 
   return (
     <div className="max-w-lg space-y-6">
-      {/* 실시간 환율 */}
+      {/* 환율 현황 */}
       <div className="bg-white rounded-2xl card-shadow p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-lg font-bold text-gray-900">환율 계산기</h1>
-            <p className="text-xs text-gray-400">실시간 환율 기준</p>
+            <p className="text-xs text-gray-400">한국은행 공시 기준</p>
           </div>
           <button
             onClick={fetchRates}
@@ -156,12 +208,73 @@ export default function ExchangeRatePage() {
 
         {lastUpdated && (
           <p className="text-[10px] text-gray-400 mt-3 text-right">
-            업데이트: {lastUpdated}
+            기준일: {lastUpdated}
           </p>
         )}
       </div>
 
-      {/* 환율 계산기 */}
+      {/* 환율 변동 그래프 */}
+      <div className="bg-white rounded-2xl card-shadow p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-700">최근 변동 그래프</h2>
+          <div className="flex gap-1">
+            {CURRENCY_CODES.map(code => (
+              <button
+                key={code}
+                onClick={() => setChartCurrency(code)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  chartCurrency === code
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                {CURRENCY_META[code].flag} {code}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10, fill: '#9ca3af' }}
+                tickLine={false}
+                axisLine={{ stroke: '#e5e7eb' }}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: '#9ca3af' }}
+                tickLine={false}
+                axisLine={false}
+                domain={['auto', 'auto']}
+                tickFormatter={(v: number) => v.toLocaleString()}
+              />
+              <Tooltip
+                contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }}
+                formatter={(value) => [`${Number(value).toLocaleString()}원`, chartCurrency === 'JPY' ? '100엔' : '1단위']}
+                labelFormatter={(label) => `날짜: ${label}`}
+              />
+              <Line
+                type="monotone"
+                dataKey="rate"
+                stroke="#6366f1"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, fill: '#6366f1' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-48 flex items-center justify-center">
+            <p className="text-xs text-gray-400">데이터 없음</p>
+          </div>
+        )}
+      </div>
+
+      {/* 환산 계산기 */}
       <div className="bg-white rounded-2xl card-shadow p-6">
         <h2 className="text-sm font-semibold text-gray-700 mb-4">환산 계산</h2>
         <div className="space-y-3">
@@ -228,7 +341,7 @@ export default function ExchangeRatePage() {
       </div>
 
       <p className="text-[10px] text-gray-400 text-center">
-        * ECB(유럽중앙은행) 기준 환율이며, 실제 거래 환율과 다를 수 있습니다
+        * 한국은행 매매기준율이며, 실제 거래 환율과 다를 수 있습니다
       </p>
     </div>
   )

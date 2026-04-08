@@ -3,178 +3,325 @@
 @tailwind utilities;
 
 /* ============================================================
- * Watercolor Theme — warm, cozy, hand-drawn atmosphere
- * Cream paper background + chocolate text + sage/ocean/peach accents
+ * Multi-theme system
+ * - watercolor: warm, cozy, hand-drawn (default)
+ * - toss: clean, minimal, blue (Toss Bank style)
+ * - shinhan: professional, blue (Shinhan Bank style)
  * ============================================================ */
 
 @layer base {
   :root {
-    /* Cream paper background */
-    --background: 38 45% 94%;
-    --foreground: 25 35% 22%;          /* deep chocolate */
-    --card: 40 50% 97%;                /* lighter cream */
-    --card-foreground: 25 35% 22%;
-    --popover: 40 50% 98%;
-    --popover-foreground: 25 35% 22%;
-
-    /* Primary: watercolor sage green */
-    --primary: 140 25% 55%;
-    --primary-foreground: 40 50% 98%;
-
-    /* Secondary: soft peach */
-    --secondary: 28 60% 90%;
-    --secondary-foreground: 25 45% 35%;
-
-    --muted: 38 35% 90%;
-    --muted-foreground: 25 20% 45%;
-
-    /* Accent: ocean blue */
-    --accent: 200 45% 88%;
-    --accent-foreground: 205 50% 30%;
-
-    --destructive: 0 55% 60%;
-    --destructive-foreground: 40 50% 98%;
-
-    --border: 35 30% 82%;
-    --input: 35 30% 85%;
-    --ring: 140 25% 55%;
     --radius: 1rem;
-
-    /* Custom watercolor palette */
-    --watercolor-cream: #f5ead0;
-    --watercolor-cream-deep: #ecdcb4;
-    --watercolor-chocolate: #4a3a28;
-    --watercolor-chocolate-light: #6b5340;
-    --watercolor-sage: #8aa88a;
-    --watercolor-sage-deep: #6b8e6b;
-    --watercolor-ocean: #7ba8c9;
-    --watercolor-ocean-deep: #5a8bad;
-    --watercolor-peach: #e8b887;
-    --watercolor-peach-deep: #d49866;
-    --watercolor-gold: #d4a84a;
-    --watercolor-rose: #d48a8a;
   }
 }
 
+/* ============================================================
+ * Theme: WATERCOLOR (default - warm/cozy)
+ * ============================================================ */
+[data-theme="watercolor"] {
+  --background: 38 45% 94%;
+  --foreground: 25 35% 22%;
+  --card: 40 50% 97%;
+  --card-foreground: 25 35% 22%;
+  --popover: 40 50% 98%;
+  --popover-foreground: 25 35% 22%;
+  --primary: 140 25% 55%;
+  --primary-foreground: 40 50% 98%;
+  --secondary: 28 60% 90%;
+  --secondary-foreground: 25 45% 35%;
+  --muted: 38 35% 90%;
+  --muted-foreground: 25 20% 45%;
+  --accent: 200 45% 88%;
+  --accent-foreground: 205 50% 30%;
+  --destructive: 0 55% 60%;
+  --destructive-foreground: 40 50% 98%;
+  --border: 35 30% 82%;
+  --input: 35 30% 85%;
+  --ring: 140 25% 55%;
+}
+
+[data-theme="watercolor"] body {
+  background-color: #f5ead0;
+  background-image:
+    radial-gradient(circle at 20% 15%, rgba(232, 184, 135, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 85%, rgba(138, 168, 138, 0.10) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(123, 168, 201, 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse at 10% 90%, rgba(212, 168, 74, 0.08) 0%, transparent 40%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.75 0 0 0 0 0.55 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-attachment: fixed;
+}
+
+[data-theme="watercolor"] .bg-white {
+  background-color: rgba(253, 248, 232, 0.85) !important;
+  backdrop-filter: blur(2px);
+}
+[data-theme="watercolor"] .bg-gray-50 { background-color: rgba(245, 234, 208, 0.5) !important; }
+[data-theme="watercolor"] .bg-gray-100 { background-color: rgba(236, 220, 180, 0.6) !important; }
+[data-theme="watercolor"] .text-gray-900 { color: #4a3a28 !important; }
+[data-theme="watercolor"] .text-gray-800 { color: #574230 !important; }
+[data-theme="watercolor"] .text-gray-700 { color: #6b5340 !important; }
+[data-theme="watercolor"] .text-gray-600 { color: #7d6350 !important; }
+[data-theme="watercolor"] .text-gray-500 { color: #907660 !important; }
+[data-theme="watercolor"] .text-gray-400 { color: #a68b72 !important; }
+[data-theme="watercolor"] .text-gray-300 { color: #c4ab8f !important; }
+[data-theme="watercolor"] .border-gray-100 { border-color: rgba(212, 184, 135, 0.3) !important; }
+[data-theme="watercolor"] .border-gray-200 { border-color: rgba(212, 184, 135, 0.5) !important; }
+
+[data-theme="watercolor"] .gradient-primary { background: linear-gradient(135deg, #a4c2a4 0%, #7ba8c9 100%); }
+[data-theme="watercolor"] .gradient-income { background: linear-gradient(135deg, #a4c2a4 0%, #8aa88a 100%); }
+[data-theme="watercolor"] .gradient-expense { background: linear-gradient(135deg, #e8b887 0%, #d48a8a 100%); }
+[data-theme="watercolor"] .gradient-balance { background: linear-gradient(135deg, #7ba8c9 0%, #a4c2a4 100%); }
+[data-theme="watercolor"] .gradient-asset { background: linear-gradient(135deg, #e8b887 0%, #d4a84a 100%); }
+
+[data-theme="watercolor"] .card-shadow {
+  box-shadow:
+    0 1px 2px rgba(74, 58, 40, 0.05),
+    0 4px 12px -2px rgba(138, 108, 70, 0.08),
+    0 0 0 1px rgba(212, 184, 135, 0.15);
+}
+[data-theme="watercolor"] .card-shadow-lg {
+  box-shadow:
+    0 2px 6px rgba(74, 58, 40, 0.06),
+    0 12px 28px -6px rgba(138, 108, 70, 0.15),
+    0 0 0 1px rgba(212, 184, 135, 0.2);
+}
+
+[data-theme="watercolor"] .text-sage { color: #6b8e6b; }
+[data-theme="watercolor"] .text-ocean { color: #5a8bad; }
+[data-theme="watercolor"] .text-peach { color: #d49866; }
+[data-theme="watercolor"] .text-chocolate { color: #4a3a28; }
+
+[data-theme="watercolor"] .text-indigo-500,
+[data-theme="watercolor"] .text-indigo-600,
+[data-theme="watercolor"] .text-indigo-700 { color: #5a8bad !important; }
+[data-theme="watercolor"] .text-indigo-400 { color: #7ba8c9 !important; }
+[data-theme="watercolor"] .text-indigo-300 { color: #9bc0d9 !important; }
+[data-theme="watercolor"] .bg-indigo-50 { background-color: rgba(186, 213, 230, 0.4) !important; }
+[data-theme="watercolor"] .bg-indigo-100 { background-color: rgba(155, 192, 217, 0.5) !important; }
+[data-theme="watercolor"] .border-indigo-100 { border-color: rgba(123, 168, 201, 0.3) !important; }
+[data-theme="watercolor"] .border-indigo-200 { border-color: rgba(123, 168, 201, 0.5) !important; }
+
+[data-theme="watercolor"] .text-emerald-500,
+[data-theme="watercolor"] .text-emerald-600,
+[data-theme="watercolor"] .text-emerald-700 { color: #6b8e6b !important; }
+[data-theme="watercolor"] .text-emerald-400 { color: #8aa88a !important; }
+[data-theme="watercolor"] .bg-emerald-50 { background-color: rgba(186, 214, 186, 0.4) !important; }
+[data-theme="watercolor"] .bg-emerald-100 { background-color: rgba(164, 194, 164, 0.5) !important; }
+
+[data-theme="watercolor"] .text-amber-500,
+[data-theme="watercolor"] .text-amber-600,
+[data-theme="watercolor"] .text-amber-700 { color: #c9903e !important; }
+[data-theme="watercolor"] .text-amber-400 { color: #d4a84a !important; }
+[data-theme="watercolor"] .bg-amber-50 { background-color: rgba(237, 214, 170, 0.45) !important; }
+[data-theme="watercolor"] .bg-amber-100 { background-color: rgba(232, 196, 148, 0.55) !important; }
+[data-theme="watercolor"] .border-amber-100 { border-color: rgba(212, 168, 74, 0.3) !important; }
+[data-theme="watercolor"] .border-amber-200 { border-color: rgba(212, 168, 74, 0.5) !important; }
+
+[data-theme="watercolor"] .text-rose-400,
+[data-theme="watercolor"] .text-rose-500,
+[data-theme="watercolor"] .text-rose-600 { color: #c06b6b !important; }
+[data-theme="watercolor"] .bg-rose-50 { background-color: rgba(219, 178, 178, 0.35) !important; }
+[data-theme="watercolor"] .bg-rose-100 { background-color: rgba(212, 138, 138, 0.4) !important; }
+
+/* ============================================================
+ * Theme: TOSS (clean/minimal/blue)
+ * Toss Bank inspired — flat, modern, vibrant blue
+ * ============================================================ */
+[data-theme="toss"] {
+  --background: 0 0% 98%;
+  --foreground: 220 13% 13%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 13% 13%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 13% 13%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 220 13% 13%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
+  --accent: 217 91% 95%;
+  --accent-foreground: 217 91% 30%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 217 91% 60%;
+}
+
+[data-theme="toss"] body {
+  background-color: #f9fafb;
+  background-image: none;
+  font-family: 'Toss Product Sans', 'Pretendard', -apple-system, sans-serif;
+}
+
+[data-theme="toss"] .bg-white { background-color: #ffffff !important; }
+[data-theme="toss"] .bg-gray-50 { background-color: #f9fafb !important; }
+[data-theme="toss"] .bg-gray-100 { background-color: #f3f4f6 !important; }
+[data-theme="toss"] .text-gray-900 { color: #191f28 !important; }
+[data-theme="toss"] .text-gray-800 { color: #333d48 !important; }
+[data-theme="toss"] .text-gray-700 { color: #4e5968 !important; }
+[data-theme="toss"] .text-gray-600 { color: #6b7684 !important; }
+[data-theme="toss"] .text-gray-500 { color: #8b95a1 !important; }
+[data-theme="toss"] .text-gray-400 { color: #b0b8c1 !important; }
+[data-theme="toss"] .border-gray-100 { border-color: #f2f4f6 !important; }
+[data-theme="toss"] .border-gray-200 { border-color: #e5e8eb !important; }
+
+[data-theme="toss"] .gradient-primary { background: linear-gradient(135deg, #3182f6 0%, #1b64da 100%); }
+[data-theme="toss"] .gradient-income { background: linear-gradient(135deg, #3182f6 0%, #1b64da 100%); }
+[data-theme="toss"] .gradient-expense { background: linear-gradient(135deg, #f04452 0%, #d92534 100%); }
+[data-theme="toss"] .gradient-balance { background: linear-gradient(135deg, #3182f6 0%, #6c8bff 100%); }
+[data-theme="toss"] .gradient-asset { background: linear-gradient(135deg, #3182f6 0%, #4396f7 100%); }
+
+[data-theme="toss"] .card-shadow {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+}
+[data-theme="toss"] .card-shadow-lg {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 16px 32px -8px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+}
+
+[data-theme="toss"] .text-sage { color: #3182f6; }
+[data-theme="toss"] .text-ocean { color: #3182f6; }
+[data-theme="toss"] .text-peach { color: #ff9500; }
+[data-theme="toss"] .text-chocolate { color: #191f28; }
+
+[data-theme="toss"] .text-indigo-500,
+[data-theme="toss"] .text-indigo-600,
+[data-theme="toss"] .text-indigo-700 { color: #3182f6 !important; }
+[data-theme="toss"] .text-indigo-400 { color: #4396f7 !important; }
+[data-theme="toss"] .bg-indigo-50 { background-color: #ebf4ff !important; }
+[data-theme="toss"] .bg-indigo-100 { background-color: #d9eaff !important; }
+
+[data-theme="toss"] .text-emerald-500,
+[data-theme="toss"] .text-emerald-600,
+[data-theme="toss"] .text-emerald-700 { color: #00b87c !important; }
+[data-theme="toss"] .bg-emerald-50 { background-color: #e6f9f1 !important; }
+[data-theme="toss"] .bg-emerald-100 { background-color: #c4f0d6 !important; }
+
+[data-theme="toss"] .text-amber-500,
+[data-theme="toss"] .text-amber-600,
+[data-theme="toss"] .text-amber-700 { color: #ff9500 !important; }
+[data-theme="toss"] .bg-amber-50 { background-color: #fff7e6 !important; }
+[data-theme="toss"] .bg-amber-100 { background-color: #ffecc4 !important; }
+
+[data-theme="toss"] .text-rose-400,
+[data-theme="toss"] .text-rose-500,
+[data-theme="toss"] .text-rose-600 { color: #f04452 !important; }
+[data-theme="toss"] .bg-rose-50 { background-color: #ffeef0 !important; }
+[data-theme="toss"] .bg-rose-100 { background-color: #ffd9de !important; }
+
+/* ============================================================
+ * Theme: SHINHAN (professional/blue)
+ * Shinhan Bank inspired — deep navy, white, gold accents
+ * ============================================================ */
+[data-theme="shinhan"] {
+  --background: 210 20% 98%;
+  --foreground: 215 50% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 215 50% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 215 50% 12%;
+  --primary: 215 65% 30%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 20% 95%;
+  --secondary-foreground: 215 50% 12%;
+  --muted: 210 20% 95%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 215 65% 95%;
+  --accent-foreground: 215 65% 25%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 215 20% 88%;
+  --input: 215 20% 88%;
+  --ring: 215 65% 30%;
+}
+
+[data-theme="shinhan"] body {
+  background-color: #f4f6f9;
+  background-image: none;
+  font-family: 'Pretendard', -apple-system, sans-serif;
+}
+
+[data-theme="shinhan"] .bg-white { background-color: #ffffff !important; }
+[data-theme="shinhan"] .bg-gray-50 { background-color: #f4f6f9 !important; }
+[data-theme="shinhan"] .bg-gray-100 { background-color: #e9edf2 !important; }
+[data-theme="shinhan"] .text-gray-900 { color: #0a2756 !important; }
+[data-theme="shinhan"] .text-gray-800 { color: #1a3666 !important; }
+[data-theme="shinhan"] .text-gray-700 { color: #2c4670 !important; }
+[data-theme="shinhan"] .text-gray-600 { color: #4a5d80 !important; }
+[data-theme="shinhan"] .text-gray-500 { color: #6b7a99 !important; }
+[data-theme="shinhan"] .text-gray-400 { color: #94a0b8 !important; }
+[data-theme="shinhan"] .border-gray-100 { border-color: #e9edf2 !important; }
+[data-theme="shinhan"] .border-gray-200 { border-color: #d4dbe5 !important; }
+
+[data-theme="shinhan"] .gradient-primary { background: linear-gradient(135deg, #0046ff 0%, #0a2756 100%); }
+[data-theme="shinhan"] .gradient-income { background: linear-gradient(135deg, #0046ff 0%, #1a64dc 100%); }
+[data-theme="shinhan"] .gradient-expense { background: linear-gradient(135deg, #e63946 0%, #c11220 100%); }
+[data-theme="shinhan"] .gradient-balance { background: linear-gradient(135deg, #0a2756 0%, #1e4485 100%); }
+[data-theme="shinhan"] .gradient-asset { background: linear-gradient(135deg, #0046ff 0%, #0a2756 100%); }
+
+[data-theme="shinhan"] .card-shadow {
+  box-shadow: 0 1px 3px rgba(10, 39, 86, 0.06), 0 4px 12px -2px rgba(10, 39, 86, 0.08);
+  border-radius: 12px;
+}
+[data-theme="shinhan"] .card-shadow-lg {
+  box-shadow: 0 4px 12px rgba(10, 39, 86, 0.1), 0 12px 28px -6px rgba(10, 39, 86, 0.15);
+  border-radius: 16px;
+}
+
+[data-theme="shinhan"] .text-sage { color: #0046ff; }
+[data-theme="shinhan"] .text-ocean { color: #0a2756; }
+[data-theme="shinhan"] .text-peach { color: #d4a84a; }
+[data-theme="shinhan"] .text-chocolate { color: #0a2756; }
+
+[data-theme="shinhan"] .text-indigo-500,
+[data-theme="shinhan"] .text-indigo-600,
+[data-theme="shinhan"] .text-indigo-700 { color: #0046ff !important; }
+[data-theme="shinhan"] .text-indigo-400 { color: #1a64dc !important; }
+[data-theme="shinhan"] .bg-indigo-50 { background-color: #e6efff !important; }
+[data-theme="shinhan"] .bg-indigo-100 { background-color: #c4d9ff !important; }
+
+[data-theme="shinhan"] .text-emerald-500,
+[data-theme="shinhan"] .text-emerald-600,
+[data-theme="shinhan"] .text-emerald-700 { color: #0a8754 !important; }
+[data-theme="shinhan"] .bg-emerald-50 { background-color: #e6f5ee !important; }
+[data-theme="shinhan"] .bg-emerald-100 { background-color: #c5e8d4 !important; }
+
+[data-theme="shinhan"] .text-amber-500,
+[data-theme="shinhan"] .text-amber-600,
+[data-theme="shinhan"] .text-amber-700 { color: #d4a84a !important; }
+[data-theme="shinhan"] .bg-amber-50 { background-color: #fdf7e8 !important; }
+[data-theme="shinhan"] .bg-amber-100 { background-color: #f9ecc7 !important; }
+
+[data-theme="shinhan"] .text-rose-400,
+[data-theme="shinhan"] .text-rose-500,
+[data-theme="shinhan"] .text-rose-600 { color: #e63946 !important; }
+[data-theme="shinhan"] .bg-rose-50 { background-color: #fdebed !important; }
+[data-theme="shinhan"] .bg-rose-100 { background-color: #fbcdd2 !important; }
+
+/* ============================================================
+ * Common (all themes)
+ * ============================================================ */
 @layer base {
   * { @apply border-border; }
-
   body {
     @apply text-foreground;
-    background-color: #f5ead0;
-    /* Layered paper texture — subtle watercolor wash + sparkle */
-    background-image:
-      radial-gradient(circle at 20% 15%, rgba(232, 184, 135, 0.12) 0%, transparent 50%),
-      radial-gradient(circle at 80% 85%, rgba(138, 168, 138, 0.10) 0%, transparent 50%),
-      radial-gradient(circle at 50% 50%, rgba(123, 168, 201, 0.06) 0%, transparent 70%),
-      radial-gradient(ellipse at 10% 90%, rgba(212, 168, 74, 0.08) 0%, transparent 40%),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='2' seed='5'/%3E%3CfeColorMatrix values='0 0 0 0 0.85 0 0 0 0 0.75 0 0 0 0 0.55 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-attachment: fixed;
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
   }
-
-  /* Tailwind gray-* overrides for warmer tones in watercolor theme */
-  .bg-white {
-    background-color: rgba(253, 248, 232, 0.85) !important;
-    backdrop-filter: blur(2px);
-  }
-  .bg-gray-50 { background-color: rgba(245, 234, 208, 0.5) !important; }
-  .bg-gray-100 { background-color: rgba(236, 220, 180, 0.6) !important; }
-  .text-gray-900 { color: #4a3a28 !important; }
-  .text-gray-800 { color: #574230 !important; }
-  .text-gray-700 { color: #6b5340 !important; }
-  .text-gray-600 { color: #7d6350 !important; }
-  .text-gray-500 { color: #907660 !important; }
-  .text-gray-400 { color: #a68b72 !important; }
-  .text-gray-300 { color: #c4ab8f !important; }
-  .border-gray-100 { border-color: rgba(212, 184, 135, 0.3) !important; }
-  .border-gray-200 { border-color: rgba(212, 184, 135, 0.5) !important; }
 }
 
 @layer utilities {
-  /* Watercolor gradients — soft, blended, hand-drawn feel */
-  .gradient-primary {
-    background: linear-gradient(135deg, #a4c2a4 0%, #7ba8c9 100%);
-  }
-  .gradient-income {
-    background: linear-gradient(135deg, #a4c2a4 0%, #8aa88a 100%);
-  }
-  .gradient-expense {
-    background: linear-gradient(135deg, #e8b887 0%, #d48a8a 100%);
-  }
-  .gradient-balance {
-    background: linear-gradient(135deg, #7ba8c9 0%, #a4c2a4 100%);
-  }
-  .gradient-asset {
-    background: linear-gradient(135deg, #e8b887 0%, #d4a84a 100%);
-  }
-
-  /* Soft watercolor shadow — like ink bleeding into paper */
-  .card-shadow {
-    box-shadow:
-      0 1px 2px rgba(74, 58, 40, 0.05),
-      0 4px 12px -2px rgba(138, 108, 70, 0.08),
-      0 0 0 1px rgba(212, 184, 135, 0.15);
-  }
-  .card-shadow-lg {
-    box-shadow:
-      0 2px 6px rgba(74, 58, 40, 0.06),
-      0 12px 28px -6px rgba(138, 108, 70, 0.15),
-      0 0 0 1px rgba(212, 184, 135, 0.2);
-  }
-
-  /* Watercolor accent text colors */
-  .text-sage { color: #6b8e6b; }
-  .text-ocean { color: #5a8bad; }
-  .text-peach { color: #d49866; }
-  .text-chocolate { color: #4a3a28; }
-
-  /* Override harsh accent colors with watercolor equivalents */
-  .text-indigo-500, .text-indigo-600, .text-indigo-700 { color: #5a8bad !important; }
-  .text-indigo-400 { color: #7ba8c9 !important; }
-  .text-indigo-300 { color: #9bc0d9 !important; }
-  .bg-indigo-50 { background-color: rgba(186, 213, 230, 0.4) !important; }
-  .bg-indigo-100 { background-color: rgba(155, 192, 217, 0.5) !important; }
-  .border-indigo-100 { border-color: rgba(123, 168, 201, 0.3) !important; }
-  .border-indigo-200 { border-color: rgba(123, 168, 201, 0.5) !important; }
-
-  .text-emerald-500, .text-emerald-600, .text-emerald-700 { color: #6b8e6b !important; }
-  .text-emerald-400 { color: #8aa88a !important; }
-  .bg-emerald-50 { background-color: rgba(186, 214, 186, 0.4) !important; }
-  .bg-emerald-100 { background-color: rgba(164, 194, 164, 0.5) !important; }
-
-  .text-amber-500, .text-amber-600, .text-amber-700 { color: #c9903e !important; }
-  .text-amber-400 { color: #d4a84a !important; }
-  .bg-amber-50 { background-color: rgba(237, 214, 170, 0.45) !important; }
-  .bg-amber-100 { background-color: rgba(232, 196, 148, 0.55) !important; }
-  .border-amber-100 { border-color: rgba(212, 168, 74, 0.3) !important; }
-  .border-amber-200 { border-color: rgba(212, 168, 74, 0.5) !important; }
-
-  .text-rose-400, .text-rose-500, .text-rose-600 { color: #c06b6b !important; }
-  .bg-rose-50 { background-color: rgba(219, 178, 178, 0.35) !important; }
-  .bg-rose-100 { background-color: rgba(212, 138, 138, 0.4) !important; }
-
-  /* Sidebar custom scrollbar — dark theme */
+  /* Sidebar custom scrollbar (모든 테마 공통 — 사이드바는 항상 다크) */
   .sidebar-scroll {
     scrollbar-width: thin;
     scrollbar-color: rgba(255,255,255,0.12) transparent;
   }
-  .sidebar-scroll::-webkit-scrollbar {
-    width: 4px;
-  }
-  .sidebar-scroll::-webkit-scrollbar-track {
-    background: transparent;
-    margin: 8px 0;
-  }
-  .sidebar-scroll::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.1);
-    border-radius: 100px;
-  }
-  .sidebar-scroll:hover::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.2);
-  }
-  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,0.3);
-  }
+  .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+  .sidebar-scroll::-webkit-scrollbar-track { background: transparent; margin: 8px 0; }
+  .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 100px; }
+  .sidebar-scroll:hover::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
 }

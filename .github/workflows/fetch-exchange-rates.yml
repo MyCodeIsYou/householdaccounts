@@ -1,0 +1,27 @@
+name: 환율 데이터 수집 (한국은행)
+
+on:
+  # 매일 한국시간 오후 1시 (UTC 04:00) — 한국은행 환율 고시 후
+  schedule:
+    - cron: '0 4 * * *'
+  # 수동 실행 허용
+  workflow_dispatch:
+
+jobs:
+  fetch-rates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 환율 수집 실행
+        env:
+          ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/fetch-exchange-rates.mjs

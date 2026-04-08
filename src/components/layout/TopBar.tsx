@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useHousehold } from '@/context/HouseholdContext'
 import { Button } from '@/components/ui/button'
-import { LogOut, Menu, User, Users, UserCircle } from 'lucide-react'
+import { LogOut, Menu, User, Users, UserCircle, Settings as SettingsIcon } from 'lucide-react'
 
 const pageTitles: Record<string, { title: string; desc: string }> = {
   '/':                { title: '대시보드',       desc: '자산 현황 및 최근 거래 요약' },
@@ -17,6 +17,7 @@ const pageTitles: Record<string, { title: string; desc: string }> = {
   '/cards':           { title: '카드 내역',        desc: '카드별 사용 내역' },
   '/households':      { title: '그룹 관리',         desc: '공유 가계부 그룹 및 멤버 관리' },
   '/profile':         { title: '내 프로필',         desc: '표시 이름 및 계정 정보 관리' },
+  '/settings':        { title: '설정',              desc: '테마 및 앱 환경 설정' },
   '/admin/users':     { title: '사용자 관리',        desc: '앱 사용자 및 권한 관리' },
   '/admin/menus':     { title: '메뉴 관리',          desc: '내비게이션 메뉴 표시 설정' },
   '/admin/banks':     { title: '은행/계좌 종류 관리', desc: '은행·기관 및 계좌 종류 설정' },
@@ -85,6 +86,15 @@ export default function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
           </div>
           <span className="text-sm font-medium text-gray-700">{displayName}</span>
         </button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/settings')}
+          className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full h-8 w-8 p-0"
+          title="설정"
+        >
+          <SettingsIcon className="h-4 w-4" />
+        </Button>
         <Button
           variant="ghost"
           size="sm"

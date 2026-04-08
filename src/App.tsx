@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from '@/context/AuthContext'
 import { HouseholdProvider } from '@/context/HouseholdContext'
+import { ThemeProvider } from '@/context/ThemeContext'
 import AppRouter from '@/router/index'
 import SplashScreen from '@/components/SplashScreen'
 
@@ -30,13 +31,15 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(shouldShowInitialSplash)
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <HouseholdProvider>
-          {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
-          <AppRouter />
-        </HouseholdProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <HouseholdProvider>
+            {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+            <AppRouter />
+          </HouseholdProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   )
 }
