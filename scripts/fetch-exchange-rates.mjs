@@ -39,13 +39,16 @@ async function fetchEcosData(itemCode, startDate, endDate) {
 }
 
 async function upsertRates(rows) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/exchange_rates`, {
+  // on_conflict 쿼리 파라미터로 충돌 타깃 명시 →
+  // PostgREST가 INSERT ... ON CONFLICT (currency_code, rate_date) DO UPDATE 로 변환
+  const url = `${SUPABASE_URL}/rest/v1/exchange_rates?on_conflict=currency_code,rate_date`
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'apikey': SUPABASE_SERVICE_KEY,
       'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
       'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates',
+      'Prefer': 'resolution=merge-duplicates,return=minimal',
     },
     body: JSON.stringify(rows),
   })
