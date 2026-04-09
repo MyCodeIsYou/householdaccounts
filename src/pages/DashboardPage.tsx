@@ -72,17 +72,17 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* 통계 카드 4개 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map(({ key, label, icon: Icon, gradient, textColor }) => (
-          <div key={key} className="bg-white rounded-2xl card-shadow p-5 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500 font-medium">{label}</span>
-              <div className={`w-9 h-9 rounded-xl ${gradient} flex items-center justify-center shadow-sm`}>
-                <Icon className="h-4 w-4 text-white" />
+          <div key={key} className="bg-white rounded-2xl card-shadow p-3 sm:p-5 flex flex-col gap-2 sm:gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs sm:text-sm text-gray-500 font-medium truncate">{label}</span>
+              <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-xl ${gradient} flex items-center justify-center shadow-sm shrink-0`}>
+                <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
               </div>
             </div>
-            <div>
-              <p className={`text-2xl font-bold tracking-tight ${textColor}`}>
+            <div className="min-w-0">
+              <p className={`text-base sm:text-xl lg:text-2xl font-bold tracking-tight truncate ${textColor}`}>
                 {formatCurrency(values[key])}
               </p>
             </div>

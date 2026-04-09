@@ -49,7 +49,9 @@ export async function checkNotificationPermission(): Promise<boolean> {
   }
 }
 
-// 모든 카드 알림 동기화: 기존 알림 모두 취소 → 활성 카드들 다시 등록
+// 모든 카드 알림 동기화: 카드 ID로 매핑되는 알림만 취소 → 활성 카드들 다시 등록
+// 기존 패턴(getPending → cancel ALL)은 카드와 무관한 알림(테스트 등)까지 지우고
+// 9시 직전 cancel-then-reschedule이 race를 만들 수 있어서 카드 ID 집합만 다룸
 export async function syncCardNotifications(cards: Card[]): Promise<void> {
   if (!isNativeApp()) return
 
@@ -57,31 +59,33 @@ export async function syncCardNotifications(cards: Card[]): Promise<void> {
   if (!granted) return
 
   try {
-    // 1. 기존 카드 알림 모두 취소
-    const pending = await LocalNotifications.getPending()
-    if (pending.notifications.length > 0) {
+    const activeCards = cards.filter(
+      c => c.is_active && c.billing_day && c.billing_day >= 1 && c.billing_day <= 31
+    )
+    const cardIds = activeCards.map(c => cardIdToNotificationId(c.id))
+
+    // 1. 카드 알림만 취소 — 카드 외 다른 알림은 건드리지 않음
+    if (cardIds.length > 0) {
       await LocalNotifications.cancel({
-        notifications: pending.notifications.map(n => ({ id: n.id })),
+        notifications: cardIds.map(id => ({ id })),
       })
     }
 
     // 2. 활성 카드의 새 알림 등록
-    const notifications = cards
-      .filter(c => c.is_active && c.billing_day && c.billing_day >= 1 && c.billing_day <= 31)
-      .map(card => {
-        const notifyDay = calcNotifyDay(card.billing_day!)
-        const day = notifyDay === 0 ? 28 : notifyDay // 1일 결제 → 28일 알림으로 폴백
-        return {
-          id: cardIdToNotificationId(card.id),
-          title: '💳 카드 결제일 알림',
-          body: `내일은 ${card.card_name} 결제일이에요. 잔액을 확인해보세요!`,
-          schedule: {
-            on: { day, hour: NOTIFICATION_HOUR, minute: 0 },
-            allowWhileIdle: true,
-          },
-          smallIcon: 'ic_launcher',
-        }
-      })
+    const notifications = activeCards.map(card => {
+      const notifyDay = calcNotifyDay(card.billing_day!)
+      const day = notifyDay === 0 ? 28 : notifyDay // 1일 결제 → 28일 알림으로 폴백
+      return {
+        id: cardIdToNotificationId(card.id),
+        title: '💳 카드 결제일 알림',
+        body: `내일은 ${card.card_name} 결제일이에요. 잔액을 확인해보세요!`,
+        schedule: {
+          on: { day, hour: NOTIFICATION_HOUR, minute: 0, second: 0 },
+          allowWhileIdle: true,
+        },
+        smallIcon: 'ic_launcher',
+      }
+    })
 
     if (notifications.length > 0) {
       await LocalNotifications.schedule({ notifications })

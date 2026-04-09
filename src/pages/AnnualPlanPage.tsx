@@ -64,15 +64,15 @@ export default function AnnualPlanPage() {
 
       <div className="bg-white rounded-2xl card-shadow overflow-hidden">
         <div className="overflow-x-auto" ref={dragScrollRef}>
-          <table className="text-sm border-collapse" style={{ minWidth: '1400px' }}>
+          <table className="text-sm border-collapse" style={{ minWidth: '1900px' }}>
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap sticky left-0 bg-gray-50 z-10" style={{ minWidth: '120px' }}>항목</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap sticky left-0 bg-gray-50 z-10" style={{ minWidth: '140px' }}>항목</th>
                 <th className="px-3 py-3 text-center text-xs text-gray-400 whitespace-nowrap" style={{ minWidth: '60px' }}>구분</th>
                 {MONTH_LABELS.map(m => (
-                  <th key={m} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 whitespace-nowrap" style={{ minWidth: '100px' }}>{m}</th>
+                  <th key={m} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 whitespace-nowrap" style={{ minWidth: '135px' }}>{m}</th>
                 ))}
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap" style={{ minWidth: '110px' }}>합계</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap" style={{ minWidth: '130px' }}>합계</th>
               </tr>
             </thead>
             <tbody>

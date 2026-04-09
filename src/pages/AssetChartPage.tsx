@@ -31,33 +31,33 @@ export default function AssetChartPage() {
   return (
     <div className="space-y-6">
       {/* 기간 선택 */}
-      <div className="bg-white rounded-2xl card-shadow p-4 flex flex-wrap gap-3 items-end">
-        <div>
+      <div className="bg-white rounded-2xl card-shadow p-3 sm:p-4 flex flex-nowrap sm:flex-wrap gap-2 sm:gap-3 items-end">
+        <div className="flex-1 min-w-0 sm:flex-initial">
           <Label className="text-xs text-gray-500 font-medium">시작일</Label>
-          <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-40 rounded-xl" />
+          <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-full sm:w-40 rounded-xl px-2 sm:px-3" />
         </div>
-        <div>
+        <div className="flex-1 min-w-0 sm:flex-initial">
           <Label className="text-xs text-gray-500 font-medium">종료일</Label>
-          <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-40 rounded-xl" />
+          <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-full sm:w-40 rounded-xl px-2 sm:px-3" />
         </div>
-        <Button onClick={() => setApplied({ from: dateFrom, to: dateTo })} className="rounded-xl gradient-primary text-white border-0 shadow-sm hover:opacity-90">조회</Button>
+        <Button onClick={() => setApplied({ from: dateFrom, to: dateTo })} className="shrink-0 rounded-xl gradient-primary text-white border-0 shadow-sm hover:opacity-90 px-3 sm:px-4">조회</Button>
       </div>
 
-      {/* 요약 카드 */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl card-shadow p-5">
-          <p className="text-xs text-gray-500 font-medium mb-1">현재 총 자산</p>
-          <p className="text-2xl font-bold text-amber-600">{formatCurrency(latest?.total_amount ?? 0)}</p>
+      {/* 요약 카드 — 모바일 2개(현재 총 자산/기간 변화), 데스크톱 3개(+ 데이터 포인트) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div className="bg-white rounded-2xl card-shadow p-3 sm:p-5 min-w-0">
+          <p className="text-xs text-gray-500 font-medium mb-1 truncate">현재 총 자산</p>
+          <p className="text-base sm:text-xl lg:text-2xl font-bold text-amber-600 truncate">{formatCurrency(latest?.total_amount ?? 0)}</p>
         </div>
-        <div className="bg-white rounded-2xl card-shadow p-5">
-          <p className="text-xs text-gray-500 font-medium mb-1">기간 변화</p>
-          <p className={`text-2xl font-bold ${change >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+        <div className="bg-white rounded-2xl card-shadow p-3 sm:p-5 min-w-0">
+          <p className="text-xs text-gray-500 font-medium mb-1 truncate">기간 변화</p>
+          <p className={`text-base sm:text-xl lg:text-2xl font-bold truncate ${change >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
             {change >= 0 ? '+' : ''}{formatCurrency(change)}
           </p>
         </div>
-        <div className="bg-white rounded-2xl card-shadow p-5">
-          <p className="text-xs text-gray-500 font-medium mb-1">데이터 포인트</p>
-          <p className="text-2xl font-bold text-gray-800">{snapshots.length}개</p>
+        <div className="hidden sm:block bg-white rounded-2xl card-shadow p-3 sm:p-5 min-w-0">
+          <p className="text-xs text-gray-500 font-medium mb-1 truncate">데이터 포인트</p>
+          <p className="text-base sm:text-xl lg:text-2xl font-bold text-gray-800 truncate">{snapshots.length}개</p>
         </div>
       </div>
 

@@ -13,6 +13,7 @@ import MonthlySummaryPage from '@/pages/MonthlySummaryPage'
 import AllowancePage from '@/pages/AllowancePage'
 import FixedCostsPage from '@/pages/FixedCostsPage'
 import CardsPage from '@/pages/CardsPage'
+import CategoriesPage from '@/pages/CategoriesPage'
 import HouseholdsPage from '@/pages/HouseholdsPage'
 import AdminUsersPage from '@/pages/AdminUsersPage'
 import MenuConfigPage from '@/pages/MenuConfigPage'
@@ -72,6 +73,7 @@ export default function AppRouter() {
           <Route path="allowance" element={<AllowancePage />} />
           <Route path="fixed-costs" element={<FixedCostsPage />} />
           <Route path="cards" element={<CardsPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
           <Route path="households" element={<HouseholdsPage />} />
           <Route path="admin/users" element={<AdminUsersPage />} />
           <Route path="admin/menus" element={<MenuConfigPage />} />

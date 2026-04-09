@@ -53,16 +53,16 @@ export default function MonthlySummaryPage() {
 
       {/* 월별 합계 테이블 */}
       <div className="bg-white rounded-2xl card-shadow overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
+        <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-800">{year}년 월별 수입/지출 합계</h3>
         </div>
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50 border-b border-gray-100">
-              <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wide">월</TableHead>
-              <TableHead className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">수입</TableHead>
-              <TableHead className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">지출</TableHead>
-              <TableHead className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">잔액</TableHead>
+              <TableHead className="px-2 sm:px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">월</TableHead>
+              <TableHead className="px-2 sm:px-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">수입</TableHead>
+              <TableHead className="px-2 sm:px-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">지출</TableHead>
+              <TableHead className="px-2 sm:px-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">잔액</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -72,15 +72,15 @@ export default function MonthlySummaryPage() {
                 className={`cursor-pointer transition-colors ${selectedMonth === s.month ? 'bg-indigo-50/60' : 'hover:bg-gray-50'} ${s.month === curMonth && year === curYear ? 'font-medium' : ''}`}
                 onClick={() => setSelectedMonth(selectedMonth === s.month ? null : s.month)}
               >
-                <TableCell className="text-gray-700">
+                <TableCell className="px-2 sm:px-4 py-3 text-gray-700 whitespace-nowrap">
                   {MONTH_LABELS[s.month - 1]}
                   {s.month === curMonth && year === curYear && (
-                    <Badge variant="secondary" className="ml-2 text-xs rounded-lg bg-indigo-100 text-indigo-600">이번달</Badge>
+                    <Badge variant="secondary" className="ml-1 sm:ml-2 text-[10px] sm:text-xs px-1.5 py-0 rounded-md bg-indigo-100 text-indigo-600">이번달</Badge>
                   )}
                 </TableCell>
-                <TableCell className="text-right text-emerald-600 font-medium">{s.income > 0 ? formatCurrency(s.income) : '—'}</TableCell>
-                <TableCell className="text-right text-rose-500 font-medium">{s.expense > 0 ? formatCurrency(s.expense) : '—'}</TableCell>
-                <TableCell className={`text-right font-semibold ${s.balance >= 0 ? 'text-indigo-600' : 'text-orange-500'}`}>
+                <TableCell className="px-2 sm:px-4 py-3 text-right text-emerald-600 font-medium whitespace-nowrap">{s.income > 0 ? formatCurrency(s.income) : '—'}</TableCell>
+                <TableCell className="px-2 sm:px-4 py-3 text-right text-rose-500 font-medium whitespace-nowrap">{s.expense > 0 ? formatCurrency(s.expense) : '—'}</TableCell>
+                <TableCell className={`px-2 sm:px-4 py-3 text-right font-semibold whitespace-nowrap ${s.balance >= 0 ? 'text-indigo-600' : 'text-orange-500'}`}>
                   {s.income > 0 || s.expense > 0 ? formatCurrency(s.balance, true) : '—'}
                 </TableCell>
               </TableRow>
@@ -88,10 +88,10 @@ export default function MonthlySummaryPage() {
           </TableBody>
           <TableFooter>
             <TableRow className="bg-gray-50">
-              <TableCell className="font-bold text-gray-700">합계</TableCell>
-              <TableCell className="text-right font-bold text-emerald-600">{formatCurrency(totalIncome)}</TableCell>
-              <TableCell className="text-right font-bold text-rose-500">{formatCurrency(totalExpense)}</TableCell>
-              <TableCell className={`text-right font-bold ${totalIncome - totalExpense >= 0 ? 'text-indigo-600' : 'text-orange-500'}`}>
+              <TableCell className="px-2 sm:px-4 py-3 font-bold text-gray-700 whitespace-nowrap">합계</TableCell>
+              <TableCell className="px-2 sm:px-4 py-3 text-right font-bold text-emerald-600 whitespace-nowrap">{formatCurrency(totalIncome)}</TableCell>
+              <TableCell className="px-2 sm:px-4 py-3 text-right font-bold text-rose-500 whitespace-nowrap">{formatCurrency(totalExpense)}</TableCell>
+              <TableCell className={`px-2 sm:px-4 py-3 text-right font-bold whitespace-nowrap ${totalIncome - totalExpense >= 0 ? 'text-indigo-600' : 'text-orange-500'}`}>
                 {formatCurrency(totalIncome - totalExpense, true)}
               </TableCell>
             </TableRow>

@@ -157,12 +157,11 @@ export type PlanGroup = '근로수익' | '금융수익' | '고정비용' | '유�
 
 export interface Category {
   id: UUID
-  user_id: UUID | null
+  user_id: UUID
   parent_id: UUID | null
   name: string
   type: TransactionType
   plan_group: PlanGroup | null
-  is_system: boolean
   display_order: number
 }
 

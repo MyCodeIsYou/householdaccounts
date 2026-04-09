@@ -197,24 +197,84 @@ export default function TransactionsPage() {
       ) : (
       <>
       {/* 합계 요약 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {[
           { label: '수입', value: totalIncome, textCls: 'text-emerald-600', dotCls: 'bg-emerald-400' },
           { label: '지출', value: totalExpense, textCls: 'text-rose-500', dotCls: 'bg-rose-400' },
           { label: '잔액', value: totalIncome - totalExpense, textCls: 'text-indigo-600', dotCls: 'bg-indigo-400' },
         ].map(({ label, value, textCls, dotCls }) => (
-          <div key={label} className="bg-white rounded-2xl card-shadow p-4 flex items-center gap-3">
-            <div className={`w-2.5 h-2.5 rounded-full ${dotCls} shrink-0`} />
-            <div>
+          <div key={label} className="bg-white rounded-2xl card-shadow p-3 sm:p-4 flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full ${dotCls} shrink-0`} />
+            <div className="min-w-0 flex-1">
               <p className="text-xs text-gray-500 font-medium">{label}</p>
-              <p className={`text-xl font-bold ${textCls}`}>{formatCurrency(value, true)}</p>
+              <p className={`text-sm sm:text-xl font-bold truncate ${textCls}`}>{formatCurrency(value, true)}</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* 거래 테이블 */}
-      <div className="bg-white rounded-2xl card-shadow overflow-x-auto" ref={dragScrollRef}>
+      {/* 모바일 카드 리스트 (md 미만 전용) */}
+      <div className="md:hidden bg-white rounded-2xl card-shadow overflow-hidden">
+        {transactions.length === 0 ? (
+          <p className="text-center text-gray-400 py-16 text-sm">거래 내역이 없습니다</p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {transactions.map(t => (
+              <li key={t.id} className="px-3 py-3 flex items-start gap-3">
+                <div className="shrink-0 pt-0.5">
+                  <Badge
+                    variant={t.type === 'income' ? 'income' : t.type === 'expense' ? 'expense' : 'secondary'}
+                    className="text-[10px] px-1.5 py-0.5 font-bold"
+                  >
+                    {t.type === 'income' ? '수입' : t.type === 'expense' ? '지출' : '이체'}
+                  </Badge>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      {t.category?.name ?? '—'}
+                      {t.subcategory && <span className="text-gray-400"> / {t.subcategory.name}</span>}
+                    </p>
+                    <span className={`text-sm font-bold whitespace-nowrap ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                      {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 truncate mt-0.5">
+                    {formatDateKo(t.txn_date)}
+                    {t.payment_method ? ` · ${t.payment_method}` : ''}
+                    {t.memo ? ` · ${t.memo}` : ''}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-0.5 shrink-0">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(t)}>
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>거래를 삭제하시겠습니까?</AlertDialogTitle>
+                        <AlertDialogDescription>이 작업은 되돌릴 수 없습니다.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => remove.mutate(t.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">삭제</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* 거래 테이블 (md 이상 전용) */}
+      <div className="hidden md:block bg-white rounded-2xl card-shadow overflow-x-auto" ref={dragScrollRef}>
         <Table className="!w-auto min-w-full">
           <TableHeader>
             <TableRow className="bg-gray-50 border-b border-gray-100">

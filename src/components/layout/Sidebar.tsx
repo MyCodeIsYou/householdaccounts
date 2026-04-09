@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Wallet, TrendingUp, TrendingDown, CalendarDays,
-  FileText, BarChart3, Gift, Lock, CreditCard,
+  FileText, BarChart3, Gift, Lock, CreditCard, Tags,
   Users, ChevronDown, User, Check, Shield, Settings, MessageCircle,
   Calculator, DollarSign,
 } from 'lucide-react'
@@ -15,7 +15,7 @@ import type { AppRole } from '@/types'
 // 아이콘 이름 → Lucide 컴포넌트 매핑
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, Wallet, TrendingUp, TrendingDown, CalendarDays,
-  FileText, BarChart3, Gift, Lock, CreditCard,
+  FileText, BarChart3, Gift, Lock, CreditCard, Tags,
   Users, Shield, Settings, MessageCircle,
 }
 
@@ -31,7 +31,8 @@ const FALLBACK_MENUS = [
   { menu_key: 'allowance',       label: '용돈 관리',   path: '/allowance',       icon_name: 'Gift',            min_role: 'user' as AppRole, is_enabled: true, display_order: 7 },
   { menu_key: 'fixed-costs',     label: '고정비 관리', path: '/fixed-costs',     icon_name: 'Lock',            min_role: 'user' as AppRole, is_enabled: true, display_order: 8 },
   { menu_key: 'cards',           label: '카드 내역',   path: '/cards',           icon_name: 'CreditCard',      min_role: 'user' as AppRole, is_enabled: true, display_order: 9 },
-  { menu_key: 'households',      label: '그룹 관리',   path: '/households',      icon_name: 'Users',           min_role: 'user' as AppRole, is_enabled: true, display_order: 10 },
+  { menu_key: 'categories',      label: '카테고리 관리', path: '/categories',    icon_name: 'Tags',            min_role: 'user' as AppRole, is_enabled: true, display_order: 10 },
+  { menu_key: 'households',      label: '그룹 관리',   path: '/households',      icon_name: 'Users',           min_role: 'user' as AppRole, is_enabled: true, display_order: 11 },
 ]
 
 const ROLE_RANK: Record<AppRole, number> = { user: 0, admin: 1, super_admin: 2 }

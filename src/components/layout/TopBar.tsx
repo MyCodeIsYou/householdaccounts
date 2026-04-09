@@ -15,6 +15,7 @@ const pageTitles: Record<string, { title: string; desc: string }> = {
   '/allowance':       { title: '용돈 관리',        desc: '용돈 지출 현황' },
   '/fixed-costs':     { title: '고정비 관리',      desc: '정기 고정 지출 납부 관리' },
   '/cards':           { title: '카드 내역',        desc: '카드별 사용 내역' },
+  '/categories':      { title: '카테고리 관리',     desc: '수입/지출 항목 추가 · 이름 변경 · 삭제' },
   '/households':      { title: '그룹 관리',         desc: '공유 가계부 그룹 및 멤버 관리' },
   '/profile':         { title: '내 프로필',         desc: '표시 이름 및 계정 정보 관리' },
   '/settings':        { title: '설정',              desc: '테마 및 앱 환경 설정' },
