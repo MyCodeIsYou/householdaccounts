@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  공유 파일 경로 화이트리스트.
+  앱 내부 전용 디렉터리만 노출하여 외부 저장소 노출 방지.
+-->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-path name="my_images" path="." />
-    <cache-path name="my_cache_images" path="." />
+    <!-- 앱 내부 전용 캐시 (공유 직전 임시 파일용) -->
+    <cache-path name="shared_cache" path="shared/" />
+    <!-- 앱 전용 외부 캐시 (Android 10+ scoped storage) -->
+    <external-cache-path name="shared_external_cache" path="shared/" />
+    <!-- 앱 전용 외부 파일 (자체 디렉터리만) -->
+    <external-files-path name="shared_external_files" path="shared/" />
 </paths>

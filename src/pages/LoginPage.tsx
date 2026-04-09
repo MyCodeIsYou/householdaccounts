@@ -52,6 +52,12 @@ export default function LoginPage() {
       return
     }
 
+    if (isSignUp && password.length < 8) {
+      setError('비밀번호는 8자 이상이어야 합니다.')
+      setLoading(false)
+      return
+    }
+
     const fn = isSignUp ? signUpWithEmail : signInWithEmail
     const { error } = await fn(email, password)
 
@@ -140,7 +146,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 className="h-11 rounded-2xl focus:border-sage"
               />
             </div>
