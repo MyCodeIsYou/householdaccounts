@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
   const [agreePrivacy, setAgreePrivacy] = useState(false)
+  const [agreeAge, setAgreeAge] = useState(false)
   const [modalType, setModalType] = useState<'terms' | 'privacy' | null>(null)
   const [showResetPassword, setShowResetPassword] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
@@ -46,8 +47,8 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
 
-    if (isSignUp && (!agreeTerms || !agreePrivacy)) {
-      setError('이용약관과 개인정보처리방침에 모두 동의해주세요.')
+    if (isSignUp && (!agreeTerms || !agreePrivacy || !agreeAge)) {
+      setError('모든 필수 항목에 동의해주세요.')
       setLoading(false)
       return
     }
@@ -172,6 +173,17 @@ export default function LoginPage() {
                   />
                   <span className="text-xs text-gray-600">
                     <button type="button" onClick={() => setModalType('privacy')} className="text-sage font-semibold underline">개인정보처리방침</button>에 동의합니다 (필수)
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreeAge}
+                    onChange={e => setAgreeAge(e.target.checked)}
+                    className="mt-0.5 rounded border-gray-300"
+                  />
+                  <span className="text-xs text-gray-600">
+                    만 14세 이상입니다 (필수)
                   </span>
                 </label>
               </div>
