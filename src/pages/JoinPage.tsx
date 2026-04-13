@@ -56,7 +56,7 @@ export default function JoinPage() {
     }
     setActiveHousehold(data.household_id)
     // Reload to refresh HouseholdContext
-    window.location.replace(window.location.origin + window.location.pathname + '#/')
+    window.location.replace(window.location.origin + '/')
   }
 
   return (

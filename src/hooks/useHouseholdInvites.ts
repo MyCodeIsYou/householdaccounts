@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext'
 import type { HouseholdInvite } from '@/types'
 
 function buildInviteUrl(token: string): string {
-  return `${window.location.origin}${window.location.pathname}#/join/${token}`
+  return `${window.location.origin}/join/${token}`
 }
 
 export function useHouseholdInvites(householdId: string | null) {

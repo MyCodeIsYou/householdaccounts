@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import AppShell from '@/components/layout/AppShell'
 import LoginPage from '@/pages/LoginPage'
@@ -53,7 +53,7 @@ function CatchAllRedirect() {
 
 export default function AppRouter() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/join/:token" element={<JoinPage />} />
@@ -85,6 +85,6 @@ export default function AppRouter() {
         </Route>
         <Route path="*" element={<CatchAllRedirect />} />
       </Routes>
-    </HashRouter>
+    </BrowserRouter>
   )
 }

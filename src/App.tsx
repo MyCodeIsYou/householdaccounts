@@ -22,9 +22,7 @@ function shouldShowInitialSplash(): boolean {
   if (typeof window === 'undefined') return false
   const isMobile = window.matchMedia('(max-width: 767px)').matches
   if (isMobile) return true
-  // HashRouter 기준 경로 체크
-  const hashPath = window.location.hash.replace(/^#/, '') || '/'
-  return hashPath.startsWith('/login')
+  return window.location.pathname === '/login'
 }
 
 export default function App() {
