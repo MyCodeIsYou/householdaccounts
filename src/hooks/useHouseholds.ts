@@ -41,12 +41,11 @@ export function useHouseholds() {
       const { error } = await supabase.rpc('leave_household', { p_household_id: householdId })
       if (error) throw error
     },
-    onSuccess: (_data, householdId) => {
+    onSuccess: () => {
       // 현재 활성 가계부에서 나갔으면 개인 모드로 전환
       setActiveHousehold(null)
       qc.invalidateQueries({ queryKey: ['households'] })
       window.location.reload()
-      console.log('Left household:', householdId)
     },
   })
 

@@ -89,7 +89,7 @@ export async function syncCardNotifications(cards: Card[]): Promise<void> {
 
     if (notifications.length > 0) {
       await LocalNotifications.schedule({ notifications })
-      console.log(`📅 ${notifications.length}개 카드 알림 등록 완료`)
+      // 알림 등록 완료
     }
   } catch (e) {
     console.error('카드 알림 동기화 실패:', e)

@@ -8,7 +8,7 @@ export default defineConfig(({ command }) => {
   const isProd = command === 'build'
   return {
     plugins: [react()],
-    base: process.env.CAPACITOR ? './' : '/householdaccounts/',
+    base: process.env.CAPACITOR ? './' : '/',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
