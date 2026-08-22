@@ -122,6 +122,35 @@ export interface Liability {
 export type LiabilityInsert = Omit<Liability, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 export type LiabilityUpdate = Partial<LiabilityInsert>
 
+// ─── 여행 지도 ───────────────────────────────────────────────────────────────
+export interface TravelRegion {
+  id: UUID
+  user_id: UUID
+  household_id?: UUID | null
+  region_code: string
+  region_name: string
+  color: string
+  created_at: ISOTimestamp
+  updated_at: ISOTimestamp
+}
+
+export interface TravelLog {
+  id: UUID
+  user_id: UUID
+  household_id?: UUID | null
+  region_code: string
+  region_name: string
+  title: string | null
+  visited_date: ISODate | null
+  memo: string | null
+  photo_url: string | null
+  created_at: ISOTimestamp
+  updated_at: ISOTimestamp
+}
+
+export type TravelLogInsert = Omit<TravelLog, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+export type TravelLogUpdate = Partial<TravelLogInsert>
+
 // ─── 은행/기관 ───────────────────────────────────────────────────────────────
 export interface BankInstitution {
   id: UUID

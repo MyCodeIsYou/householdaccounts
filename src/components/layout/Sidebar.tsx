@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Wallet, TrendingUp, TrendingDown, CalendarDays,
   FileText, BarChart3, Gift, Lock, CreditCard, Tags,
   Users, ChevronDown, User, Check, Shield, Settings, MessageCircle,
-  Calculator, DollarSign,
+  Calculator, DollarSign, LineChart, Map,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useHousehold } from '@/context/HouseholdContext'
@@ -16,7 +16,7 @@ import type { AppRole } from '@/types'
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, Wallet, TrendingUp, TrendingDown, CalendarDays,
   FileText, BarChart3, Gift, Lock, CreditCard, Tags,
-  Users, Shield, Settings, MessageCircle,
+  Users, Shield, Settings, MessageCircle, LineChart, Map,
 }
 
 // 기본 메뉴 (DB 로딩 전 fallback)
@@ -31,7 +31,9 @@ const FALLBACK_MENUS = [
   { menu_key: 'allowance',       label: '용돈 관리',   path: '/allowance',       icon_name: 'Gift',            min_role: 'user' as AppRole, is_enabled: true, display_order: 7 },
   { menu_key: 'fixed-costs',     label: '고정비 관리', path: '/fixed-costs',     icon_name: 'Lock',            min_role: 'user' as AppRole, is_enabled: true, display_order: 8 },
   { menu_key: 'cards',           label: '카드 내역',   path: '/cards',           icon_name: 'CreditCard',      min_role: 'user' as AppRole, is_enabled: true, display_order: 9 },
+  { menu_key: 'stocks',          label: '주식 시세',   path: '/stocks',          icon_name: 'LineChart',       min_role: 'user' as AppRole, is_enabled: true, display_order: 9.5 },
   { menu_key: 'categories',      label: '카테고리 관리', path: '/categories',    icon_name: 'Tags',            min_role: 'user' as AppRole, is_enabled: true, display_order: 10 },
+  { menu_key: 'travel-map',      label: '여행 지도',   path: '/travel-map',      icon_name: 'Map',             min_role: 'user' as AppRole, is_enabled: true, display_order: 11 },
   { menu_key: 'households',      label: '그룹 관리',   path: '/households',      icon_name: 'Users',           min_role: 'user' as AppRole, is_enabled: true, display_order: 11 },
 ]
 

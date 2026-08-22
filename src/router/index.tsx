@@ -26,6 +26,8 @@ import TermsOfServicePage from '@/pages/TermsOfServicePage'
 import ResetPasswordPage from '@/pages/ResetPasswordPage'
 import SalaryCalculatorPage from '@/pages/SalaryCalculatorPage'
 import ExchangeRatePage from '@/pages/ExchangeRatePage'
+import StocksPage from '@/pages/StocksPage'
+import TravelMapPage from '@/pages/TravelMapPage'
 import SettingsPage from '@/pages/SettingsPage'
 
 // PASSWORD_RECOVERY 이벤트 감지 시 /reset-password로 리다이렉트
@@ -81,6 +83,8 @@ export default function AppRouter() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="salary-calculator" element={<SalaryCalculatorPage />} />
           <Route path="exchange-rate" element={<ExchangeRatePage />} />
+          <Route path="stocks" element={<StocksPage />} />
+          <Route path="travel-map" element={<TravelMapPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<CatchAllRedirect />} />
