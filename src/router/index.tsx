@@ -27,6 +27,9 @@ import ResetPasswordPage from '@/pages/ResetPasswordPage'
 import SalaryCalculatorPage from '@/pages/SalaryCalculatorPage'
 import ExchangeRatePage from '@/pages/ExchangeRatePage'
 import StocksPage from '@/pages/StocksPage'
+import StockAutoTradePage from '@/pages/StockAutoTradePage'
+import StockAnalysisPage from '@/pages/StockAnalysisPage'
+import StockDataCollectorPage from '@/pages/StockDataCollectorPage'
 import TravelMapPage from '@/pages/TravelMapPage'
 import SettingsPage from '@/pages/SettingsPage'
 
@@ -84,6 +87,9 @@ export default function AppRouter() {
           <Route path="salary-calculator" element={<SalaryCalculatorPage />} />
           <Route path="exchange-rate" element={<ExchangeRatePage />} />
           <Route path="stocks" element={<StocksPage />} />
+          <Route path="stock-auto-trade" element={<StockAutoTradePage />} />
+          <Route path="stock-analysis" element={<StockAnalysisPage />} />
+          <Route path="stock-data-collector" element={<StockDataCollectorPage />} />
           <Route path="travel-map" element={<TravelMapPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
