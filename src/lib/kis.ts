@@ -59,6 +59,7 @@ export interface KisBalance {
 export interface KisBalanceSummary {
   dnca_tot_amt: string        // 예수금총액
   tot_evlu_amt: string        // 총평가금액
+  scts_evlu_amt: string       // 유가평가금액
   pchs_amt_smtl_amt: string   // 매입금액합계
   evlu_pfls_smtl_amt: string  // 평가손익합계
 }

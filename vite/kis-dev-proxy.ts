@@ -95,6 +95,9 @@ export function kisDevProxy(mode: string): Plugin {
     return await fetch(url.toString(), fetchOpts)
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type KisResp = Record<string, any>
+
   // action 핸들러
   type Handler = (params: Record<string, string>, token: string) => Promise<unknown>
 
@@ -110,7 +113,7 @@ export function kisDevProxy(mode: string): Plugin {
         query: { FID_COND_MRKT_DIV_CODE: 'J', FID_INPUT_ISCD: params.symbol },
         token,
       })
-      const data = await res.json()
+      const data = await res.json() as KisResp
       if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
       return data.output
     },
@@ -127,7 +130,7 @@ export function kisDevProxy(mode: string): Plugin {
         },
         token,
       })
-      const data = await res.json()
+      const data = await res.json() as KisResp
       if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
       return data.output
     },
@@ -145,7 +148,7 @@ export function kisDevProxy(mode: string): Plugin {
         },
         token,
       })
-      const data = await res.json()
+      const data = await res.json() as KisResp
       if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
       return { holdings: data.output1 ?? [], summary: data.output2?.[0] ?? {} }
     },
@@ -165,7 +168,7 @@ export function kisDevProxy(mode: string): Plugin {
         },
         token,
       })
-      return await res.json()
+      return await res.json() as KisResp
     },
 
     async 'order-sell'(params, token) {
@@ -183,7 +186,7 @@ export function kisDevProxy(mode: string): Plugin {
         },
         token,
       })
-      return await res.json()
+      return await res.json() as KisResp
     },
 
     async 'financial-ratio'(params, token) {
@@ -193,7 +196,7 @@ export function kisDevProxy(mode: string): Plugin {
         query: { FID_COND_MRKT_DIV_CODE: 'J', FID_INPUT_ISCD: params.symbol, FID_DIV_CLS_CODE: '0' },
         token,
       })
-      const data = await res.json()
+      const data = await res.json() as KisResp
       if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
       return data.output
     },
@@ -205,7 +208,7 @@ export function kisDevProxy(mode: string): Plugin {
         query: { user_id: env.KIS_HTS_ID ?? '' },
         token,
       })
-      const data = await res.json()
+      const data = await res.json() as KisResp
       if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
       return data.output2 ?? []
     },
@@ -217,7 +220,7 @@ export function kisDevProxy(mode: string): Plugin {
         query: { user_id: env.KIS_HTS_ID ?? '', seq: params.seq },
         token,
       })
-      const data = await res.json()
+      const data = await res.json() as KisResp
       if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
       return data.output2 ?? []
     },
@@ -229,7 +232,7 @@ export function kisDevProxy(mode: string): Plugin {
         query: { FID_COND_MRKT_DIV_CODE: 'J', FID_INPUT_ISCD: params.symbol },
         token,
       })
-      const data = await res.json()
+      const data = await res.json() as KisResp
       if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
       return data.output
     },

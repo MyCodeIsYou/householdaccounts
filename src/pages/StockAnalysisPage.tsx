@@ -297,7 +297,7 @@ function TechnicalTab({ symbol }: { symbol: string }) {
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                   <YAxis domain={['auto', 'auto']} tick={{ fontSize: 10 }} tickFormatter={v => (v / 1000).toFixed(0) + 'k'} />
                   <Tooltip
-                    formatter={(v: number, name: string) => {
+                    formatter={(v: any, name: any) => {
                       const labels: Record<string, string> = { close: '종가', sma5: '5일선', sma20: '20일선', sma60: '60일선' }
                       return [fmtKrw(v), labels[name] ?? name]
                     }}
@@ -359,7 +359,7 @@ function TechnicalTab({ symbol }: { symbol: string }) {
                 <BarChart data={chartData}>
                   <XAxis dataKey="date" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} tickFormatter={v => (v / 10000).toFixed(0) + '만'} />
-                  <Tooltip formatter={(v: number) => [v.toLocaleString() + '주', '거래량']} />
+                  <Tooltip formatter={(v: any) => [Number(v).toLocaleString() + '주', '거래량']} />
                   <Bar dataKey="volume" name="거래량">
                     {chartData.map((d, i) => (
                       <Cell key={i} fill={d.close >= d.open ? '#fca5a5' : '#93c5fd'} />
@@ -381,9 +381,9 @@ function TechnicalTab({ symbol }: { symbol: string }) {
                   <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} />
                   <ReferenceLine y={0} stroke="#d1d5db" />
                   <Tooltip
-                    formatter={(v: number, name: string) => {
+                    formatter={(v: any, name: any) => {
                       const labels: Record<string, string> = { macd: 'MACD', macdSignal: 'Signal', macdHist: 'Histogram' }
-                      return [v?.toFixed(0) ?? '-', labels[name] ?? name]
+                      return [Number(v)?.toFixed(0) ?? '-', labels[name] ?? name]
                     }}
                   />
                   <Bar dataKey="macdHist" name="macdHist">
@@ -409,7 +409,7 @@ function TechnicalTab({ symbol }: { symbol: string }) {
                   <YAxis domain={[0, 100]} ticks={[30, 50, 70]} tick={{ fontSize: 9 }} tickLine={false} axisLine={false} />
                   <ReferenceLine y={70} stroke="#fca5a5" strokeDasharray="3 3" />
                   <ReferenceLine y={30} stroke="#93c5fd" strokeDasharray="3 3" />
-                  <Tooltip formatter={(v: number) => [v?.toFixed(1), 'RSI']} />
+                  <Tooltip formatter={(v: any) => [Number(v)?.toFixed(1), 'RSI']} />
                   <Area type="monotone" dataKey="rsi" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.08} strokeWidth={1.5} />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -520,8 +520,8 @@ function InvestorTab({ symbol }: { symbol: string }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} tickFormatter={v => (v / 1000).toFixed(0) + 'k'} />
-                <Tooltip formatter={(v: number, name: string) => [
-                  v.toLocaleString() + '주',
+                <Tooltip formatter={(v: any, name: any) => [
+                  Number(v).toLocaleString() + '주',
                   name === 'personal' ? '개인' : name === 'foreign' ? '외국인' : '기관'
                 ]} />
                 <Bar dataKey="personal" fill="#f59e0b" name="개인" />

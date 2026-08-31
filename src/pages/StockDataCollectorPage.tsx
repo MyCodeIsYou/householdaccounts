@@ -74,8 +74,8 @@ function ScreenerPanel({ connected }: { connected: boolean }) {
 
   const sortedResults = [...results].sort((a, b) => {
     if (sortKey === 'name') return sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
-    const av = Number((a as Record<string, string>)[sortKey] || '0')
-    const bv = Number((b as Record<string, string>)[sortKey] || '0')
+    const av = Number((a as unknown as Record<string, string>)[sortKey] || '0')
+    const bv = Number((b as unknown as Record<string, string>)[sortKey] || '0')
     return sortAsc ? av - bv : bv - av
   })
 
