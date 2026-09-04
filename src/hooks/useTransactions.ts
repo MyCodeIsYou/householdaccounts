@@ -59,6 +59,20 @@ export function useTransactions(filters: TransactionFilters = {}) {
     },
   })
 
+  const addBulk = useMutation({
+    mutationFn: async (payloads: TransactionInsert[]) => {
+      if (!user) throw new Error('로그인이 필요합니다')
+      if (payloads.length === 0) return
+      const rows = payloads.map(p => ({ ...p, ...insertScope }))
+      const { error } = await supabase.from('transactions').insert(rows)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transactions'] })
+      qc.invalidateQueries({ queryKey: ['monthly-summary'] })
+    },
+  })
+
   const update = useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: TransactionUpdate }) => {
       const { error } = await supabase.from('transactions').update(payload).eq('id', id)
@@ -85,5 +99,5 @@ export function useTransactions(filters: TransactionFilters = {}) {
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
 
-  return { ...query, transactions, totalIncome, totalExpense, add, update, remove }
+  return { ...query, transactions, totalIncome, totalExpense, add, addBulk, update, remove }
 }

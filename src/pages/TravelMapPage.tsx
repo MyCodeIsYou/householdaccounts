@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useTravelMap } from '@/hooks/useTravelMap'
-import { loadKoreaRegions, MAP_W, MAP_H, type KoreaGeo } from '@/lib/koreaMap'
+import { loadKoreaRegions, loadSeoulRegions, MAP_W, MAP_H, SEOUL_MAP_W, SEOUL_MAP_H, type KoreaGeo, type SeoulGeo } from '@/lib/koreaMap'
 import type { TravelLog } from '@/types'
 
 const DEFAULT_FILL = '#e2e8f0' // slate-200 (미방문)
@@ -48,9 +48,12 @@ const emptyForm: LogForm = {
 export default function TravelMapPage() {
   const { regions, logs, setRegionColor, removeRegion, uploadPhoto, addLog, updateLog, deleteLog } = useTravelMap()
 
+  const [mapTab, setMapTab] = useState<'korea' | 'seoul'>('korea')
   const [geo, setGeo] = useState<KoreaGeo | null>(null)
+  const [seoulGeo, setSeoulGeo] = useState<SeoulGeo | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [view, setView] = useState<View>({ k: 1, x: 0, y: 0 })
+  const [view, setView] = useState<View>({ k: 1.8, x: -160, y: -100 })
+  const [seoulView, setSeoulView] = useState<View>({ k: 1, x: 0, y: 0 })
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [form, setForm] = useState<LogForm>(emptyForm)
 
@@ -60,13 +63,34 @@ export default function TravelMapPage() {
   const pinchStart = useRef<{ dist: number; k: number; x: number; y: number; vx: number; vy: number } | null>(null)
   const movedRef = useRef(false)
 
-  // 지도 지오메트리 로드
   useEffect(() => {
     let alive = true
     loadKoreaRegions()
       .then(r => { if (alive) setGeo(r) })
       .catch(e => { if (alive) setLoadError(e instanceof Error ? e.message : '지도 로드 실패') })
+    loadSeoulRegions()
+      .then(r => { if (alive) setSeoulGeo(r) })
+      .catch(() => {})
     return () => { alive = false }
+  }, [])
+
+  const isSeoul = mapTab === 'seoul'
+  const curView = isSeoul ? seoulView : view
+  const curMapW = isSeoul ? SEOUL_MAP_W : MAP_W
+  const curMapH = isSeoul ? SEOUL_MAP_H : MAP_H
+
+  const mapTabRef = useRef(mapTab)
+  mapTabRef.current = mapTab
+  const curViewRef = useRef(curView)
+  curViewRef.current = curView
+  const curMapWRef = useRef(curMapW)
+  curMapWRef.current = curMapW
+  const curMapHRef = useRef(curMapH)
+  curMapHRef.current = curMapH
+
+  const setCurView = useCallback((action: React.SetStateAction<View>) => {
+    if (mapTabRef.current === 'seoul') setSeoulView(action)
+    else setView(action)
   }, [])
 
   const colorMap = useMemo(() => {
@@ -84,7 +108,9 @@ export default function TravelMapPage() {
     return m
   }, [logs])
 
-  const selectedRegion = geo?.regions.find(p => p.code === selectedCode) ?? null
+  const selectedRegion = (isSeoul ? seoulGeo : geo)?.regions.find(p => p.code === selectedCode)
+    ?? geo?.regions.find(p => p.code === selectedCode)
+    ?? null
   const selectedColorRow = regions.find(r => r.region_code === selectedCode) ?? null
   const selectedLogs = selectedCode ? (logsByRegion.get(selectedCode) ?? []) : []
 
@@ -92,12 +118,12 @@ export default function TravelMapPage() {
   const clientToView = useCallback((cx: number, cy: number) => {
     const rect = svgRef.current?.getBoundingClientRect()
     if (!rect) return { vx: 0, vy: 0 }
-    return { vx: ((cx - rect.left) / rect.width) * MAP_W, vy: ((cy - rect.top) / rect.height) * MAP_H }
+    return { vx: ((cx - rect.left) / rect.width) * curMapWRef.current, vy: ((cy - rect.top) / rect.height) * curMapHRef.current }
   }, [])
 
   // ── 확대/축소/이동 ──────────────────────────────────────
   const zoomBy = useCallback((factor: number, vx: number, vy: number) => {
-    setView(v => {
+    setCurView(v => {
       const k = clamp(v.k * factor, MIN_K, MAX_K)
       const ratio = k / v.k
       return { k, x: vx - (vx - v.x) * ratio, y: vy - (vy - v.y) * ratio }
@@ -113,14 +139,15 @@ export default function TravelMapPage() {
   const onPointerDown = (e: React.PointerEvent) => {
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     movedRef.current = false
+    const cv = curViewRef.current
     if (pointers.current.size === 1) {
-      dragStart.current = { cx: e.clientX, cy: e.clientY, x: view.x, y: view.y }
+      dragStart.current = { cx: e.clientX, cy: e.clientY, x: cv.x, y: cv.y }
       pinchStart.current = null
     } else if (pointers.current.size === 2) {
       const [p1, p2] = [...pointers.current.values()]
       const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y)
       const { vx, vy } = clientToView((p1.x + p2.x) / 2, (p1.y + p2.y) / 2)
-      pinchStart.current = { dist, k: view.k, x: view.x, y: view.y, vx, vy }
+      pinchStart.current = { dist, k: cv.k, x: cv.x, y: cv.y, vx, vy }
       dragStart.current = null
     }
   }
@@ -137,14 +164,14 @@ export default function TravelMapPage() {
       const ps = pinchStart.current
       const k = clamp(ps.k * (dist / (ps.dist || 1)), MIN_K, MAX_K)
       const ratio = k / ps.k
-      setView({ k, x: ps.vx - (ps.vx - ps.x) * ratio, y: ps.vy - (ps.vy - ps.y) * ratio })
+      setCurView({ k, x: ps.vx - (ps.vx - ps.x) * ratio, y: ps.vy - (ps.vy - ps.y) * ratio })
       movedRef.current = true
     } else if (pointers.current.size === 1 && dragStart.current) {
       const ds = dragStart.current
       const dxc = e.clientX - ds.cx
       const dyc = e.clientY - ds.cy
       if (Math.hypot(dxc, dyc) > 4) movedRef.current = true
-      setView(v => ({ ...v, x: ds.x + (dxc / rect.width) * MAP_W, y: ds.y + (dyc / rect.height) * MAP_H }))
+      setCurView(v => ({ ...v, x: ds.x + (dxc / rect.width) * curMapW, y: ds.y + (dyc / rect.height) * curMapH }))
     }
   }
 
@@ -247,14 +274,33 @@ export default function TravelMapPage() {
     })
   }, [geo, colorMap, selectedCode])
 
+  const seoulPathEls = useMemo(() => {
+    if (!seoulGeo) return null
+    return seoulGeo.regions.map(p => {
+      const isSel = p.code === selectedCode
+      return (
+        <path
+          key={p.code}
+          data-code={p.code}
+          d={p.d}
+          fill={colorMap.get(p.code) ?? DEFAULT_FILL}
+          stroke={isSel ? '#0f172a' : '#ffffff'}
+          strokeWidth={isSel ? 2.5 : 0.8}
+          vectorEffect="non-scaling-stroke"
+          className="cursor-pointer hover:brightness-90 hover:[stroke:#334155] hover:[stroke-width:1.4] transition-[filter]"
+        />
+      )
+    })
+  }, [seoulGeo, colorMap, selectedCode])
+
   // 라벨 (축소: 시도 / 확대: 시군구). 그룹이 scale(k) 되므로 폰트는 1/k로 보정
   const labelEls = useMemo(() => {
     if (!geo) return null
     const k = view.k
     const showRegion = k >= K_LABEL
     const items = showRegion ? geo.regions : geo.provinces
-    const fs = (showRegion ? 11 : 15) / k
-    const sw = 2.6 / k
+    const fs = (showRegion ? 24 : 32) / k
+    const sw = 5 / k
     return items.map(it => (
       <text
         key={(showRegion ? 'r' : 'p') + it.code}
@@ -272,6 +318,52 @@ export default function TravelMapPage() {
     ))
   }, [geo, view.k])
 
+  const SEOUL_K_LABEL = 2.5
+
+  const seoulLabelEls = useMemo(() => {
+    if (!seoulGeo) return null
+    const k = seoulView.k
+    const showDong = k >= SEOUL_K_LABEL
+
+    if (showDong) {
+      const fs = 16 / k
+      const sw = 4 / k
+      return seoulGeo.regions.map(it => (
+        <text
+          key={'sd' + it.code}
+          x={it.cx}
+          y={it.cy}
+          fontSize={fs}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill="#1e293b"
+          style={{ paintOrder: 'stroke', stroke: '#ffffff', strokeWidth: sw, strokeLinejoin: 'round', fontWeight: 500 }}
+          className="pointer-events-none select-none"
+        >
+          {it.name}
+        </text>
+      ))
+    }
+
+    const fs = 28 / k
+    const sw = 6 / k
+    return seoulGeo.guLabels.map(it => (
+      <text
+        key={'sg' + it.code}
+        x={it.cx}
+        y={it.cy}
+        fontSize={fs}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill="#1e293b"
+        style={{ paintOrder: 'stroke', stroke: '#ffffff', strokeWidth: sw, strokeLinejoin: 'round', fontWeight: 700 }}
+        className="pointer-events-none select-none"
+      >
+        {it.name}
+      </text>
+    ))
+  }, [seoulGeo, seoulView.k])
+
   const visitedCount = regions.length
 
   return (
@@ -287,9 +379,29 @@ export default function TravelMapPage() {
               시/군/구를 눌러 색을 칠하고 여행 일기를 남겨보세요
             </p>
           </div>
-          <div className="text-right shrink-0">
-            <p className="text-2xl font-bold text-indigo-600">{visitedCount}</p>
-            <p className="text-[10px] text-gray-400">다녀온 지역</p>
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+              <button
+                onClick={() => setMapTab('korea')}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  mapTab === 'korea' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                🇰🇷 전국
+              </button>
+              <button
+                onClick={() => setMapTab('seoul')}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  mapTab === 'seoul' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                🏙️ 서울
+              </button>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-indigo-600">{visitedCount}</p>
+              <p className="text-[10px] text-gray-400">다녀온 지역</p>
+            </div>
           </div>
         </div>
       </div>
@@ -307,11 +419,11 @@ export default function TravelMapPage() {
             <p className="text-sm">지도를 불러오는 중…</p>
           </div>
         )}
-        {!loadError && geo && (
+        {!loadError && ((mapTab === 'korea' && geo) || (mapTab === 'seoul' && seoulGeo)) && (
           <>
             <svg
               ref={svgRef}
-              viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+              viewBox={`0 0 ${curMapW} ${curMapH}`}
               className="w-full h-[60vh] md:h-[68vh] select-none"
               style={{ touchAction: 'none', cursor: 'grab' }}
               onWheel={onWheel}
@@ -321,26 +433,29 @@ export default function TravelMapPage() {
               onPointerCancel={e => { pointers.current.delete(e.pointerId); pinchStart.current = null }}
               onPointerLeave={e => { pointers.current.delete(e.pointerId); if (pointers.current.size < 2) pinchStart.current = null; if (pointers.current.size === 0) dragStart.current = null }}
             >
-              <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
-                {pathEls}
-                {labelEls}
+              <g transform={`translate(${curView.x} ${curView.y}) scale(${curView.k})`}>
+                {mapTab === 'korea' ? pathEls : seoulPathEls}
+                {mapTab === 'korea' ? labelEls : seoulLabelEls}
               </g>
             </svg>
 
             {/* 확대/축소 컨트롤 */}
             <div className="absolute right-5 bottom-5 flex flex-col gap-1.5">
               <button
-                onClick={() => zoomBy(1.4, MAP_W / 2, MAP_H / 2)}
+                onClick={() => zoomBy(1.4, curMapW / 2, curMapH / 2)}
                 className="w-9 h-9 rounded-xl bg-white shadow-md border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 active:scale-95 transition"
                 title="확대"
               ><Plus className="h-4 w-4" /></button>
               <button
-                onClick={() => zoomBy(1 / 1.4, MAP_W / 2, MAP_H / 2)}
+                onClick={() => zoomBy(1 / 1.4, curMapW / 2, curMapH / 2)}
                 className="w-9 h-9 rounded-xl bg-white shadow-md border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 active:scale-95 transition"
                 title="축소"
               ><Minus className="h-4 w-4" /></button>
               <button
-                onClick={() => setView({ k: 1, x: 0, y: 0 })}
+                onClick={() => {
+                  if (mapTab === 'korea') setView({ k: 1.8, x: -160, y: -100 })
+                  else setSeoulView({ k: 1, x: 0, y: 0 })
+                }}
                 className="w-9 h-9 rounded-xl bg-white shadow-md border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-50 active:scale-95 transition"
                 title="전체 보기"
               ><Maximize2 className="h-4 w-4" /></button>

@@ -39,22 +39,43 @@ interface RegionProps {
   name: string
 }
 
+interface SeoulDongProps {
+  code: string
+  name: string
+  gu: string
+}
+
 interface TopoLike {
   objects: Record<string, unknown>
   arcs: unknown
 }
 
+export const SEOUL_MAP_W = 800
+export const SEOUL_MAP_H = 800
+
+export interface SeoulGeo {
+  regions: RegionPath[]
+  guLabels: ProvinceLabel[]
+}
+
 let cache: KoreaGeo | null = null
+let seoulCache: SeoulGeo | null = null
+let topoCache: { topo: TopoLike; obj: { geometries: Array<{ properties: RegionProps }> }; fc: FeatureCollection<Geometry, RegionProps> } | null = null
 
-// 대한민국 시/군/구 TopoJSON → SVG path + 시도 라벨 (최초 1회, 이후 캐시)
-export async function loadKoreaRegions(): Promise<KoreaGeo> {
-  if (cache) return cache
-
+async function loadTopo() {
+  if (topoCache) return topoCache
   const topo = (await import('@/assets/skorea-municipalities-topo.json')).default as unknown as TopoLike
   const objKey = Object.keys(topo.objects)[0]
   const obj = topo.objects[objKey] as { geometries: Array<{ properties: RegionProps }> }
-
   const fc = feature(topo as never, obj as never) as unknown as FeatureCollection<Geometry, RegionProps>
+  topoCache = { topo, obj, fc }
+  return { topo, obj, fc }
+}
+
+export async function loadKoreaRegions(): Promise<KoreaGeo> {
+  if (cache) return cache
+
+  const { topo, obj, fc } = await loadTopo()
 
   const projection = geoMercator().fitSize([MAP_W, MAP_H], fc)
   const pathGen = geoPath(projection)
@@ -64,7 +85,6 @@ export async function loadKoreaRegions(): Promise<KoreaGeo> {
     return { code: f.properties.code, name: f.properties.name, d: pathGen(f) ?? '', cx, cy }
   })
 
-  // 시/도별로 시군구 지오메트리를 병합해 라벨 중심점 계산
   const groups = new Map<string, typeof obj.geometries>()
   for (const g of obj.geometries) {
     const pre = g.properties.code.slice(0, 2)
@@ -85,4 +105,39 @@ export async function loadKoreaRegions(): Promise<KoreaGeo> {
 
   cache = { regions, provinces }
   return cache
+}
+
+export async function loadSeoulRegions(): Promise<SeoulGeo> {
+  if (seoulCache) return seoulCache
+
+  const raw = (await import('@/assets/seoul-dong.json')).default as unknown as FeatureCollection<Geometry, SeoulDongProps>
+
+  const projection = geoMercator().fitSize([SEOUL_MAP_W, SEOUL_MAP_H], raw)
+  const pathGen = geoPath(projection)
+
+  const regions: RegionPath[] = raw.features.map((f: Feature<Geometry, SeoulDongProps>) => {
+    const [cx, cy] = pathGen.centroid(f)
+    const dongName = f.properties.name.replace(/^.+구\s*/, '')
+    return { code: f.properties.code, name: dongName, d: pathGen(f) ?? '', cx, cy }
+  })
+
+  const guGroups = new Map<string, { xs: number[]; ys: number[] }>()
+  for (const f of raw.features) {
+    const gu = f.properties.gu
+    const [cx, cy] = pathGen.centroid(f)
+    if (!Number.isFinite(cx)) continue
+    let g = guGroups.get(gu)
+    if (!g) { g = { xs: [], ys: [] }; guGroups.set(gu, g) }
+    g.xs.push(cx); g.ys.push(cy)
+  }
+
+  const guLabels: ProvinceLabel[] = []
+  for (const [gu, g] of guGroups) {
+    const cx = g.xs.reduce((a, b) => a + b, 0) / g.xs.length
+    const cy = g.ys.reduce((a, b) => a + b, 0) / g.ys.length
+    guLabels.push({ code: gu, name: gu, cx, cy })
+  }
+
+  seoulCache = { regions, guLabels }
+  return seoulCache
 }

@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Pencil, Trash2, List, CalendarDays } from 'lucide-react'
+import { Plus, Pencil, Trash2, List, CalendarDays, ListPlus, X } from 'lucide-react'
 import CalendarView from '@/components/transactions/CalendarView'
 import { formatCurrency, formatDateKo, parseAmountInput, getCurrentYearMonth } from '@/lib/utils'
 import { PAYMENT_METHODS } from '@/lib/constants'
@@ -60,7 +60,7 @@ export default function TransactionsPage() {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
 
   const filters: TransactionFilters = { year: filterYear, month: filterMonth, type: filterType, keyword: keyword || undefined }
-  const { transactions, totalIncome, totalExpense, add, update, remove } = useTransactions(filters)
+  const { transactions, totalIncome, totalExpense, add, addBulk, update, remove } = useTransactions(filters)
   const { categories, getTopLevel, getChildren } = useCategories()
   const { data: accounts = [] } = useAccounts()
   const { cards } = useCards()
@@ -68,6 +68,9 @@ export default function TransactionsPage() {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Transaction | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm())
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkRows, setBulkRows] = useState<FormState[]>([])
+  const [bulkSaving, setBulkSaving] = useState(false)
   const dragScrollRef = useDragScroll<HTMLDivElement>()
 
   const topCategories = getTopLevel(form.type === 'transfer' ? undefined : form.type)
@@ -117,6 +120,56 @@ export default function TransactionsPage() {
       await add.mutateAsync(payload)
     }
     setOpen(false)
+  }
+
+  function openBulkAdd() {
+    setBulkRows([emptyForm()])
+    setBulkOpen(true)
+  }
+
+  function addBulkRow() {
+    const lastRow = bulkRows[bulkRows.length - 1]
+    setBulkRows(prev => [...prev, {
+      ...emptyForm(),
+      txn_date: lastRow?.txn_date ?? emptyForm().txn_date,
+      type: lastRow?.type ?? 'expense',
+      payment_method: lastRow?.payment_method ?? '',
+      account_id: lastRow?.account_id ?? '',
+      card_id: lastRow?.card_id ?? '',
+    }])
+  }
+
+  function removeBulkRow(idx: number) {
+    setBulkRows(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function updateBulkRow(idx: number, patch: Partial<FormState>) {
+    setBulkRows(prev => prev.map((r, i) => i === idx ? { ...r, ...patch } : r))
+  }
+
+  async function handleBulkSave() {
+    const valid = bulkRows.filter(r => r.amount && parseAmountInput(r.amount) > 0 && r.txn_date)
+    if (valid.length === 0) return
+    setBulkSaving(true)
+    try {
+      const payloads: TransactionInsert[] = valid.map(r => ({
+        txn_date: r.txn_date,
+        type: r.type,
+        category_id: r.category_id || null,
+        subcategory_id: r.subcategory_id || null,
+        amount: parseAmountInput(r.amount),
+        memo: r.memo || null,
+        payment_method: (r.payment_method as PaymentMethod) || null,
+        account_id: r.account_id || null,
+        card_id: r.card_id || null,
+        is_allowance: r.is_allowance,
+        is_fixed: r.is_fixed,
+      }))
+      await addBulk.mutateAsync(payloads)
+      setBulkOpen(false)
+    } finally {
+      setBulkSaving(false)
+    }
   }
 
   const years = Array.from({ length: 5 }, (_, i) => curYear - 2 + i)
@@ -174,6 +227,10 @@ export default function TransactionsPage() {
             <CalendarDays className="h-4 w-4" />
           </button>
         </div>
+        <Button variant="outline" onClick={openBulkAdd} className="rounded-xl border-indigo-200 text-indigo-600 hover:bg-indigo-50">
+          <ListPlus className="h-4 w-4" />
+          <span className="hidden sm:inline">일괄 추가</span>
+        </Button>
         <Button onClick={openAdd} className="rounded-xl gradient-primary text-white border-0 shadow-sm hover:opacity-90">
           <Plus className="h-4 w-4" />
           거래 추가
@@ -440,6 +497,128 @@ export default function TransactionsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>취소</Button>
             <Button onClick={handleSave} disabled={!form.amount || !form.txn_date}>저장</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* 일괄 거래 추가 다이얼로그 */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="max-w-[95vw] sm:max-w-5xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>거래 일괄 추가</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto py-2">
+            <table className="w-full text-xs border-collapse" style={{ minWidth: '800px' }}>
+              <thead className="sticky top-0 z-10">
+                <tr className="bg-gray-100">
+                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '32px' }}>#</th>
+                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '130px' }}>날짜</th>
+                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '80px' }}>구분</th>
+                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '120px' }}>카테고리</th>
+                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '120px' }}>세부</th>
+                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '110px' }}>금액</th>
+                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '100px' }}>결제방법</th>
+                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap">메모</th>
+                  <th className="px-2 py-2" style={{ width: '32px' }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {bulkRows.map((row, idx) => {
+                  const rowTopCats = getTopLevel(row.type === 'transfer' ? undefined : row.type)
+                  const rowSubCats = row.category_id ? getChildren(row.category_id) : []
+                  return (
+                    <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50/50">
+                      <td className="px-2 py-1.5 text-gray-400 font-medium">{idx + 1}</td>
+                      <td className="px-1 py-1.5">
+                        <Input type="date" value={row.txn_date} onChange={e => updateBulkRow(idx, { txn_date: e.target.value })} className="h-7 text-xs rounded-md border-gray-200 px-1.5" />
+                      </td>
+                      <td className="px-1 py-1.5">
+                        <Select value={row.type} onValueChange={v => updateBulkRow(idx, { type: v as TransactionType, category_id: '', subcategory_id: '' })}>
+                          <SelectTrigger className="h-7 text-xs rounded-md border-gray-200 px-1.5"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="income">수입</SelectItem>
+                            <SelectItem value="expense">지출</SelectItem>
+                            <SelectItem value="transfer">이체</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-1 py-1.5">
+                        <Select value={row.category_id} onValueChange={v => updateBulkRow(idx, { category_id: v, subcategory_id: '' })}>
+                          <SelectTrigger className="h-7 text-xs rounded-md border-gray-200 px-1.5"><SelectValue placeholder="선택" /></SelectTrigger>
+                          <SelectContent>
+                            {rowTopCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-1 py-1.5">
+                        <Select value={row.subcategory_id} onValueChange={v => updateBulkRow(idx, { subcategory_id: v })} disabled={rowSubCats.length === 0}>
+                          <SelectTrigger className="h-7 text-xs rounded-md border-gray-200 px-1.5"><SelectValue placeholder="선택" /></SelectTrigger>
+                          <SelectContent>
+                            {rowSubCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-1 py-1.5">
+                        <Input
+                          type="text"
+                          placeholder="0"
+                          value={row.amount ? Number(row.amount).toLocaleString('ko-KR') : ''}
+                          onChange={e => updateBulkRow(idx, { amount: String(parseAmountInput(e.target.value)) })}
+                          className="h-7 text-xs rounded-md border-gray-200 px-1.5 text-right"
+                        />
+                      </td>
+                      <td className="px-1 py-1.5">
+                        <Select value={row.payment_method} onValueChange={v => updateBulkRow(idx, { payment_method: v as PaymentMethod })}>
+                          <SelectTrigger className="h-7 text-xs rounded-md border-gray-200 px-1.5"><SelectValue placeholder="선택" /></SelectTrigger>
+                          <SelectContent>
+                            {PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-1 py-1.5">
+                        <Input
+                          placeholder="메모"
+                          value={row.memo}
+                          onChange={e => updateBulkRow(idx, { memo: e.target.value })}
+                          className="h-7 text-xs rounded-md border-gray-200 px-1.5"
+                        />
+                      </td>
+                      <td className="px-1 py-1.5 text-center">
+                        <button
+                          onClick={() => removeBulkRow(idx)}
+                          className="text-gray-300 hover:text-rose-500 transition-colors disabled:opacity-30"
+                          disabled={bulkRows.length <= 1}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+            <button
+              onClick={addBulkRow}
+              className="w-full mt-2 py-2 border-2 border-dashed border-gray-300 rounded-xl text-xs text-gray-400 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center gap-1"
+            >
+              <Plus className="w-3.5 h-3.5" /> 행 추가
+            </button>
+          </div>
+          <DialogFooter className="pt-3 border-t">
+            <div className="flex items-center gap-2 w-full justify-between">
+              <span className="text-xs text-gray-400">
+                {bulkRows.filter(r => r.amount && parseAmountInput(r.amount) > 0).length}건 입력됨
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setBulkOpen(false)}>취소</Button>
+                <Button
+                  onClick={handleBulkSave}
+                  disabled={bulkSaving || bulkRows.every(r => !r.amount || parseAmountInput(r.amount) <= 0)}
+                  className="gradient-primary text-white border-0 hover:opacity-90"
+                >
+                  {bulkSaving ? '저장 중...' : '일괄 저장'}
+                </Button>
+              </div>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
