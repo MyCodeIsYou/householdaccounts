@@ -24,7 +24,11 @@ export function useAssetSnapshots(dateFrom?: string, dateTo?: string) {
   })
 
   const upsert = useMutation({
-    mutationFn: async ({ snapshot_date, total_amount }: { snapshot_date: string; total_amount: number }) => {
+    mutationFn: async ({ snapshot_date, total_amount, account_balances }: {
+      snapshot_date: string
+      total_amount: number
+      account_balances?: { account_id: string; amount: number }[]
+    }): Promise<string> => {
       if (!user) throw new Error('로그인이 필요합니다')
       // partial unique index는 PostgREST의 on_conflict가 지원하지 않으므로 수동 select → update/insert
       let existingQuery = supabase
@@ -39,22 +43,42 @@ export function useAssetSnapshots(dateFrom?: string, dateTo?: string) {
       const { data: existing, error: selectErr } = await existingQuery.maybeSingle()
       if (selectErr) throw selectErr
 
+      let snapshotId: string
       if (existing) {
         const { error } = await supabase
           .from('asset_snapshots')
           .update({ total_amount })
           .eq('id', existing.id)
         if (error) throw error
+        snapshotId = existing.id
       } else {
-        const { error } = await supabase
+        const { data: inserted, error } = await supabase
           .from('asset_snapshots')
           .insert({ ...insertScope, snapshot_date, total_amount })
+          .select('id')
+          .single()
         if (error) throw error
+        snapshotId = inserted.id
       }
+
+      if (account_balances && account_balances.length > 0) {
+        const rows = account_balances.map(ab => ({
+          asset_snapshot_id: snapshotId,
+          account_id: ab.account_id,
+          amount: ab.amount,
+        }))
+        const { error: abError } = await supabase
+          .from('account_snapshots')
+          .upsert(rows, { onConflict: 'asset_snapshot_id,account_id' })
+        if (abError) throw abError
+      }
+
+      return snapshotId
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['asset-snapshots', scopeKey] })
       qc.invalidateQueries({ queryKey: ['asset-history', scopeKey] })
+      qc.invalidateQueries({ queryKey: ['account-snapshots', scopeKey] })
     },
   })
 

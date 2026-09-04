@@ -71,10 +71,13 @@ export function kisDevProxy(mode: string): Plugin {
     query?: Record<string, string>
     body?: Record<string, string>
     token: string
+    extraHeaders?: Record<string, string>
+    useRealDomain?: boolean
   }
 
   async function callKis(opts: CallOpts): Promise<Response> {
-    const url = new URL(base + opts.path)
+    const domain = opts.useRealDomain ? DOMAINS.real : base
+    const url = new URL(domain + opts.path)
     if (opts.query) {
       for (const [k, v] of Object.entries(opts.query)) {
         if (v !== undefined) url.searchParams.set(k, v)
@@ -87,6 +90,7 @@ export function kisDevProxy(mode: string): Plugin {
       appsecret,
       tr_id: opts.trId,
       custtype: 'P',
+      ...opts.extraHeaders,
     }
     const fetchOpts: RequestInit = { method: opts.method ?? 'GET', headers }
     if (opts.method === 'POST' && opts.body) {
@@ -202,27 +206,74 @@ export function kisDevProxy(mode: string): Plugin {
     },
 
     async 'condition-search-list'(_p, token) {
-      const res = await callKis({
-        path: '/uapi/domestic-stock/v1/quotations/psearch-title',
-        trId: 'HHKST03900300',
-        query: { user_id: env.KIS_HTS_ID ?? '' },
-        token,
-      })
-      const data = await res.json() as KisResp
-      if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
-      return data.output2 ?? []
+      const allResults: KisResp[] = []
+
+      for (let page = 0; page < 10; page++) {
+        const headers: Record<string, string> = page > 0 ? { tr_cont: 'N' } : {}
+        const res = await callKis({
+          path: '/uapi/domestic-stock/v1/quotations/psearch-title',
+          trId: 'HHKST03900300',
+          query: { user_id: env.KIS_HTS_ID ?? '' },
+          token,
+          extraHeaders: headers,
+          useRealDomain: true,
+        })
+        const data = await res.json() as KisResp
+        const htsId = env.KIS_HTS_ID ?? ''
+        console.log(`[KIS condition-list] page=${page} hts_id=${htsId ? htsId.slice(0,2) + '***' : '(empty)'} domain=${DOMAINS.real} rt_cd=${data.rt_cd} msg1=${data.msg1} keys=${Object.keys(data).join(',')}`)
+        console.log(`[KIS condition-list] full response:`, JSON.stringify(data).slice(0, 2000))
+        console.log(`[KIS condition-list] response headers:`, [...res.headers.entries()].map(([k,v]) => `${k}=${v}`).join(' | '))
+
+        if (data.rt_cd !== '0' && !(data.output1?.length > 0) && !(data.output2?.length > 0)) {
+          throw new Error(data.msg1 ?? 'API 오류')
+        }
+
+        const items = data.output2 ?? data.output1 ?? []
+        allResults.push(...items)
+
+        const trCont = res.headers.get('tr_cont') ?? ''
+        if (trCont === 'M' || trCont === 'F') {
+          await new Promise(r => setTimeout(r, 500))
+        } else {
+          break
+        }
+      }
+
+      return allResults
     },
 
     async 'condition-search'(params, token) {
-      const res = await callKis({
-        path: '/uapi/domestic-stock/v1/quotations/psearch-result',
-        trId: 'HHKST03900400',
-        query: { user_id: env.KIS_HTS_ID ?? '', seq: params.seq },
-        token,
-      })
-      const data = await res.json() as KisResp
-      if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
-      return data.output2 ?? []
+      const allResults: KisResp[] = []
+
+      for (let page = 0; page < 10; page++) {
+        const headers: Record<string, string> = page > 0 ? { tr_cont: 'N' } : {}
+        const res = await callKis({
+          path: '/uapi/domestic-stock/v1/quotations/psearch-result',
+          trId: 'HHKST03900400',
+          query: { user_id: env.KIS_HTS_ID ?? '', seq: params.seq },
+          token,
+          extraHeaders: headers,
+          useRealDomain: true,
+        })
+        const data = await res.json() as KisResp
+        console.log(`[KIS condition-search] page=${page} rt_cd=${data.rt_cd} msg1=${data.msg1} output2=${(data.output2 ?? []).length}items tr_cont=${res.headers.get('tr_cont')}`)
+
+        if (data.rt_cd !== '0' && !(data.output2?.length > 0)) {
+          throw new Error(data.msg1 ?? 'API 오류')
+        }
+
+        const items = data.output2 ?? []
+        allResults.push(...items)
+
+        const trCont = res.headers.get('tr_cont') ?? ''
+        if (trCont === 'M' || trCont === 'F') {
+          await new Promise(r => setTimeout(r, 500))
+        } else {
+          break
+        }
+      }
+
+      return allResults
     },
 
     async 'investor-trend'(params, token) {

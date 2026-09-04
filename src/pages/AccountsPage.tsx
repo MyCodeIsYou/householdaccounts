@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { Fragment, useState, useMemo } from 'react'
 import { useAccounts } from '@/hooks/useAccounts'
 import { useLiabilities } from '@/hooks/useLiabilities'
 import { useCategories } from '@/hooks/useCategories'
 import { useAssetSnapshots } from '@/hooks/useAssetSnapshots'
+import { useAccountSnapshots } from '@/hooks/useAccountSnapshots'
 import { useBankInstitutions } from '@/hooks/useBankInstitutions'
 import { useAccountTypes } from '@/hooks/useAccountTypes'
 import { useDragScroll } from '@/hooks/useDragScroll'
@@ -13,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Pencil, Trash2, Building2, History, TrendingUp, TrendingDown, CalendarPlus, Wallet, LayoutGrid, Table as TableIcon } from 'lucide-react'
+import { Plus, Pencil, Trash2, Building2, History, TrendingUp, TrendingDown, CalendarPlus, Wallet, LayoutGrid, Table as TableIcon, ChevronDown, ChevronRight } from 'lucide-react'
 import { formatCurrency, parseAmountInput } from '@/lib/utils'
 import { format, parseISO } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -393,6 +394,17 @@ export default function AccountsPage() {
   const snapshotFrom = `${new Date().getFullYear() - 1}-01-01`
   const { data: snapshots = [], upsert: upsertSnapshot, remove: removeSnapshot } = useAssetSnapshots(snapshotFrom)
 
+  const snapshotIds = useMemo(() => snapshots.map(s => s.id), [snapshots])
+  const { data: accountSnapshotsRaw = [] } = useAccountSnapshots(snapshotIds)
+  const accountSnapshotsBySnapshotId = useMemo(() => {
+    const map = new Map<string, { account_id: string; amount: number }[]>()
+    for (const as of accountSnapshotsRaw) {
+      if (!map.has(as.asset_snapshot_id)) map.set(as.asset_snapshot_id, [])
+      map.get(as.asset_snapshot_id)!.push({ account_id: as.account_id, amount: as.amount })
+    }
+    return map
+  }, [accountSnapshotsRaw])
+
   const dragScrollRef = useDragScroll<HTMLDivElement>()
 
   const [accountOpen, setAccountOpen] = useState(false)
@@ -414,6 +426,7 @@ export default function AccountsPage() {
   const [editingSnapshotId, setEditingSnapshotId] = useState<string | null>(null)
 
   const [showAllSnapshots, setShowAllSnapshots] = useState(false)
+  const [expandedSnapshotId, setExpandedSnapshotId] = useState<string | null>(null)
   const visibleSnapshots = showAllSnapshots ? snapshots : snapshots.slice(0, SNAPSHOT_PAGE_SIZE)
 
   // 은행 이름 목록 (DB 기반, fallback 없음)
@@ -487,7 +500,8 @@ export default function AccountsPage() {
   async function handleSnapshotSave() {
     const amount = parseAmountInput(snapshotForm.total_amount)
     if (!snapshotForm.snapshot_date || amount <= 0) return
-    await upsertSnapshot.mutateAsync({ snapshot_date: snapshotForm.snapshot_date, total_amount: amount })
+    const account_balances = accounts.map(a => ({ account_id: a.id, amount: a.balance }))
+    await upsertSnapshot.mutateAsync({ snapshot_date: snapshotForm.snapshot_date, total_amount: amount, account_balances })
     setSnapshotOpen(false)
   }
 
@@ -704,10 +718,22 @@ export default function AccountsPage() {
                 {visibleSnapshots.map((snap, idx) => {
                   const prevSnap = snapshots[idx + 1]
                   const diff = prevSnap ? snap.total_amount - prevSnap.total_amount : null
+                  const acctDetails = accountSnapshotsBySnapshotId.get(snap.id)
+                  const hasDetails = acctDetails && acctDetails.length > 0
+                  const isExpanded = expandedSnapshotId === snap.id
                   return (
-                    <TableRow key={snap.id} className="hover:bg-gray-50 transition-colors">
+                    <Fragment key={snap.id}>
+                    <TableRow className="hover:bg-gray-50 transition-colors">
                       <TableCell className="text-sm font-medium text-gray-700">
-                        {format(parseISO(snap.snapshot_date), 'yyyy년 MM월 dd일 (EEE)', { locale: ko })}
+                        <button
+                          className="flex items-center gap-1.5 text-left"
+                          onClick={() => hasDetails && setExpandedSnapshotId(isExpanded ? null : snap.id)}
+                        >
+                          {hasDetails ? (
+                            isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          ) : <span className="w-3.5 shrink-0" />}
+                          {format(parseISO(snap.snapshot_date), 'yyyy년 MM월 dd일 (EEE)', { locale: ko })}
+                        </button>
                       </TableCell>
                       <TableCell className="text-right font-semibold text-gray-800">{formatCurrency(snap.total_amount)}</TableCell>
                       <TableCell className="text-right text-sm">
@@ -741,6 +767,22 @@ export default function AccountsPage() {
                         </div>
                       </TableCell>
                     </TableRow>
+                    {isExpanded && hasDetails && (
+                      acctDetails.map(ad => {
+                        const acct = accounts.find(a => a.id === ad.account_id)
+                        return (
+                          <TableRow key={`${snap.id}-${ad.account_id}`} className="bg-gray-50/60">
+                            <TableCell className="text-xs text-gray-500 pl-10">
+                              {acct ? `${acct.bank_name} · ${acct.label ?? acct.account_type}` : '삭제된 계좌'}
+                            </TableCell>
+                            <TableCell className="text-right text-xs font-medium text-gray-600">{formatCurrency(ad.amount)}</TableCell>
+                            <TableCell />
+                            <TableCell />
+                          </TableRow>
+                        )
+                      })
+                    )}
+                    </Fragment>
                   )
                 })}
               </TableBody>

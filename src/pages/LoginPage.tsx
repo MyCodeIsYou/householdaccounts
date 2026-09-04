@@ -25,6 +25,7 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState('')
   const [resetLoading, setResetLoading] = useState(false)
   const [resetMessage, setResetMessage] = useState<string | null>(null)
+  const [signUpSuccess, setSignUpSuccess] = useState(false)
 
   async function handleResetPassword(e: React.FormEvent) {
     e.preventDefault()
@@ -59,19 +60,33 @@ export default function LoginPage() {
       return
     }
 
-    const fn = isSignUp ? signUpWithEmail : signInWithEmail
-    const { error } = await fn(email, password)
-
-    setLoading(false)
-    if (error) {
-      setError(error.message)
-    } else {
-      const pendingToken = sessionStorage.getItem('pendingJoinToken')
-      if (pendingToken) {
-        sessionStorage.removeItem('pendingJoinToken')
-        navigate(`/join/${pendingToken}`, { replace: true })
+    if (isSignUp) {
+      const { error } = await signUpWithEmail(email, password)
+      setLoading(false)
+      if (error) {
+        setError(error.message)
       } else {
-        navigate('/')
+        setSignUpSuccess(true)
+      }
+    } else {
+      const { error } = await signInWithEmail(email, password)
+      setLoading(false)
+      if (error) {
+        if (error.message === 'Invalid login credentials') {
+          setError('이메일 또는 비밀번호가 올바르지 않습니다. 회원가입 후 이메일 인증을 완료했는지 확인해주세요.')
+        } else if (error.message === 'Email not confirmed') {
+          setError('이메일 인증이 완료되지 않았습니다. 가입 시 발송된 이메일의 인증 링크를 클릭해주세요.')
+        } else {
+          setError(error.message)
+        }
+      } else {
+        const pendingToken = sessionStorage.getItem('pendingJoinToken')
+        if (pendingToken) {
+          sessionStorage.removeItem('pendingJoinToken')
+          navigate(`/join/${pendingToken}`, { replace: true })
+        } else {
+          navigate('/')
+        }
       }
     }
   }
@@ -121,6 +136,27 @@ export default function LoginPage() {
             </span>
           </div>
 
+          {signUpSuccess ? (
+            <div className="text-center py-6 space-y-4">
+              <div className="text-4xl">📬</div>
+              <h2 className="text-lg font-bold text-chocolate">이메일 인증을 완료해주세요</h2>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                <span className="font-semibold text-sage">{email}</span>으로<br />
+                인증 메일을 보내드렸습니다.<br />
+                메일함을 확인하고 인증 링크를 클릭해주세요.
+              </p>
+              <p className="text-xs text-gray-400">
+                메일이 오지 않으면 스팸함을 확인해주세요.
+              </p>
+              <Button
+                onClick={() => { setSignUpSuccess(false); setIsSignUp(false); setError(null) }}
+                className="mt-2 rounded-2xl gradient-primary text-white border-0 hover:opacity-90"
+              >
+                🌿 로그인하기
+              </Button>
+            </div>
+          ) : (
+          <>
           <form onSubmit={handleSubmit} className="space-y-5 mt-2">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm font-medium text-chocolate flex items-center gap-1.5">
@@ -260,6 +296,8 @@ export default function LoginPage() {
                 </div>
               </form>
             </div>
+          )}
+          </>
           )}
 
           <div className="mt-6 text-center text-sm text-gray-500">

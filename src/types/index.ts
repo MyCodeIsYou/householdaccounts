@@ -180,6 +180,14 @@ export interface AssetSnapshot {
   created_at: ISOTimestamp
 }
 
+export interface AccountSnapshot {
+  id: UUID
+  asset_snapshot_id: UUID
+  account_id: UUID
+  amount: number
+  created_at: ISOTimestamp
+}
+
 // ─── 카테고리 ─────────────────────────────────────────────────────────────────
 export type TransactionType = 'income' | 'expense' | 'transfer'
 export type PlanGroup = '근로수익' | '금융수익' | '고정비용' | '유동비용'
