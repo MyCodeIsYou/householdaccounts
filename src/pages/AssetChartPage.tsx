@@ -189,7 +189,7 @@ export default function AssetChartPage() {
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={v => `${(v / 10000).toFixed(0)}만`} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={60} />
               <Tooltip
-                formatter={(v: number, name: string) => {
+                formatter={(v: number | string | undefined, name: string) => {
                   if (name === 'selectedTotal' || name === 'total') return [formatCurrency(Number(v)), '총 자산']
                   const acctId = name.replace('acct_', '')
                   const acct = activeAccounts.find(a => a.id === acctId)
