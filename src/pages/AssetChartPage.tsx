@@ -190,10 +190,11 @@ export default function AssetChartPage() {
               <YAxis tickFormatter={v => `${(v / 10000).toFixed(0)}만`} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={60} />
               <Tooltip
                 formatter={(v, name) => {
-                  if (name === 'selectedTotal' || name === 'total') return [formatCurrency(Number(v)), '총 자산']
-                  const acctId = name.replace('acct_', '')
+                  const n = String(name ?? '')
+                  if (n === 'selectedTotal' || n === 'total') return [formatCurrency(Number(v)), '총 자산']
+                  const acctId = n.replace('acct_', '')
                   const acct = activeAccounts.find(a => a.id === acctId)
-                  const label = acct ? `${acct.bank_name} · ${acct.label ?? acct.account_type}` : name
+                  const label = acct ? `${acct.bank_name} · ${acct.label ?? acct.account_type}` : n
                   return [formatCurrency(Number(v)), label]
                 }}
                 labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate ?? ''}
