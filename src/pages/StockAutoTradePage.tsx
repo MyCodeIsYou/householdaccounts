@@ -590,9 +590,11 @@ export default function StockAutoTradePage() {
         </button>
       </div>
 
-      {!connected && (
+      {!connected && !statusLoading && (
         <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-          .env.local에 KIS_APPKEY / KIS_APPSECRET을 설정해 주세요.
+          {import.meta.env.DEV
+            ? '.env.local에 KIS_APPKEY / KIS_APPSECRET을 설정해 주세요.'
+            : 'KIS API 연결 실패 — Supabase Edge Function(kis-proxy)이 배포되었는지, 시크릿(KIS_APPKEY, KIS_APPSECRET, KIS_ACCOUNT_NO)이 설정되었는지 확인해 주세요.'}
         </p>
       )}
 
