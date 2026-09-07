@@ -41,9 +41,48 @@ function json(body: unknown, status = 200) {
   })
 }
 
-// ---- 토큰 캐시 ----
+// ---- Supabase 클라이언트 (service_role로 토큰 캐시 DB 접근) ----
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+function getSupabase() {
+  const url = Deno.env.get('SUPABASE_URL') ?? ''
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  return createClient(url, key)
+}
+
+// ---- 토큰 캐시 (메모리 + DB 2단 캐시) ----
 let cachedToken: string | null = null
 let tokenExpiresAt = 0
+
+async function loadTokenFromDb(): Promise<boolean> {
+  try {
+    const sb = getSupabase()
+    const { data } = await sb
+      .from('kis_token_cache')
+      .select('access_token, expires_at, mode')
+      .eq('id', 'default')
+      .maybeSingle()
+    if (data && data.mode === getMode() && new Date(data.expires_at).getTime() > Date.now()) {
+      cachedToken = data.access_token
+      tokenExpiresAt = new Date(data.expires_at).getTime()
+      return true
+    }
+  } catch { /* DB 없으면 무시 */ }
+  return false
+}
+
+async function saveTokenToDb(token: string, expiresAt: number): Promise<void> {
+  try {
+    const sb = getSupabase()
+    await sb.from('kis_token_cache').upsert({
+      id: 'default',
+      access_token: token,
+      expires_at: new Date(expiresAt).toISOString(),
+      mode: getMode(),
+      updated_at: new Date().toISOString(),
+    })
+  } catch { /* DB 저장 실패해도 메모리 캐시로 동작 */ }
+}
 
 async function issueToken(): Promise<string> {
   const appkey = Deno.env.get('KIS_APPKEY')
@@ -70,19 +109,26 @@ async function issueToken(): Promise<string> {
   }
 
   cachedToken = data.access_token
-  // access_token_token_expired 형식: "2024-01-01 12:00:00"
   if (data.access_token_token_expired) {
     tokenExpiresAt = new Date(data.access_token_token_expired).getTime() - 60_000
   } else {
-    tokenExpiresAt = Date.now() + 23 * 60 * 60 * 1000 // 기본 23시간
+    tokenExpiresAt = Date.now() + 23 * 60 * 60 * 1000
   }
+
+  await saveTokenToDb(cachedToken!, tokenExpiresAt)
   return cachedToken!
 }
 
 async function getToken(forceRefresh = false): Promise<string> {
+  // 1. 메모리 캐시 확인
   if (!forceRefresh && cachedToken && Date.now() < tokenExpiresAt) {
     return cachedToken
   }
+  // 2. DB 캐시 확인 (콜드스타트 대비)
+  if (!forceRefresh && await loadTokenFromDb()) {
+    return cachedToken!
+  }
+  // 3. 신규 발급
   return await issueToken()
 }
 
