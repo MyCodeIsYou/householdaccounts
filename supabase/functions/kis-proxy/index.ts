@@ -11,6 +11,8 @@
 //   supabase secrets set KIS_ACCOUNT_NO=... KIS_ACCOUNT_PRODUCT_CODE=01
 //   supabase secrets set KIS_MODE=paper  (paper: 모의투자 / real: 실전)
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
 // 모의투자 / 실전 도메인
 const DOMAINS = {
   real: 'https://openapi.koreainvestment.com:9443',
@@ -42,8 +44,6 @@ function json(body: unknown, status = 200) {
 }
 
 // ---- Supabase 클라이언트 (service_role로 토큰 캐시 DB 접근) ----
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
 function getSupabase() {
   const url = Deno.env.get('SUPABASE_URL') ?? ''
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -67,7 +67,7 @@ async function loadTokenFromDb(): Promise<boolean> {
       tokenExpiresAt = new Date(data.expires_at).getTime()
       return true
     }
-  } catch { /* DB 없으면 무시 */ }
+  } catch (_) { /* DB 없으면 무시 */ }
   return false
 }
 
@@ -81,7 +81,7 @@ async function saveTokenToDb(token: string, expiresAt: number): Promise<void> {
       mode: getMode(),
       updated_at: new Date().toISOString(),
     })
-  } catch { /* DB 저장 실패해도 메모리 캐시로 동작 */ }
+  } catch (_) { /* DB 저장 실패해도 메모리 캐시로 동작 */ }
 }
 
 async function issueToken(): Promise<string> {
@@ -132,6 +132,44 @@ async function getToken(forceRefresh = false): Promise<string> {
   return await issueToken()
 }
 
+// ── 실전 도메인 전용 토큰 (ranking 등 모의투자 미지원 API용) ──
+// KIS_REAL_APPKEY / KIS_REAL_APPSECRET이 설정되어 있으면 실전 키 사용, 없으면 기본 키로 시도
+let realToken: string | null = null
+let realTokenExpiresAt = 0
+
+function getRealKeys() {
+  const appkey = Deno.env.get('KIS_REAL_APPKEY') || Deno.env.get('KIS_APPKEY') || ''
+  const appsecret = Deno.env.get('KIS_REAL_APPSECRET') || Deno.env.get('KIS_APPSECRET') || ''
+  return { appkey, appsecret }
+}
+
+async function getRealToken(): Promise<string> {
+  if (getMode() === 'real') return await getToken()
+  if (realToken && Date.now() < realTokenExpiresAt) return realToken
+
+  const { appkey, appsecret } = getRealKeys()
+  if (!appkey || !appsecret) throw new Error('KIS_REAL_APPKEY / KIS_REAL_APPSECRET (또는 KIS_APPKEY) 시크릿이 설정되지 않았습니다.')
+
+  const res = await fetch(`${DOMAINS.real}/oauth2/tokenP`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ grant_type: 'client_credentials', appkey, appsecret }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || data.error_description) {
+    throw new Error(`실전 토큰 발급 실패: ${data.error_description ?? data.msg1 ?? '실전 앱키(KIS_REAL_APPKEY)를 등록해주세요.'}`)
+  }
+
+  realToken = data.access_token
+  if (data.access_token_token_expired) {
+    realTokenExpiresAt = new Date(data.access_token_token_expired).getTime() - 60_000
+  } else {
+    realTokenExpiresAt = Date.now() + 23 * 60 * 60 * 1000
+  }
+  return realToken!
+}
+
+
 function getKeys() {
   const appkey = Deno.env.get('KIS_APPKEY') ?? ''
   const appsecret = Deno.env.get('KIS_APPSECRET') ?? ''
@@ -155,15 +193,17 @@ interface KisCallOptions {
   query?: Record<string, string>
   body?: Record<string, string>
   token: string
+  baseUrl?: string
+  keys?: { appkey: string; appsecret: string }
 }
 
 async function callKis(opts: KisCallOptions): Promise<Response> {
-  const { appkey, appsecret } = getKeys()
-  const url = new URL(getBase() + opts.path)
+  const { appkey, appsecret } = opts.keys ?? getKeys()
+  const url = new URL((opts.baseUrl ?? getBase()) + opts.path)
 
   if (opts.query) {
     for (const [k, v] of Object.entries(opts.query)) {
-      if (v !== undefined && v !== '') url.searchParams.set(k, v)
+      if (v !== undefined) url.searchParams.set(k, v)
     }
   }
 
@@ -220,24 +260,35 @@ const actions: Record<string, ActionHandler> = {
   },
 
   // 일별 시세
-  async 'daily-prices'(params, token) {
+  async 'daily-prices'(params, _token) {
     const symbol = params.symbol
     if (!symbol) throw new Error('symbol이 필요합니다.')
+    const rToken = await getRealToken()
+
+    const now = new Date()
+    const d120 = new Date(now)
+    d120.setDate(d120.getDate() - 120)
+    const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '')
 
     const res = await callKis({
-      path: '/uapi/domestic-stock/v1/quotations/inquire-daily-price',
-      trId: 'FHKST01010400',
+      path: '/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice',
+      trId: 'FHKST03010100',
       query: {
         FID_COND_MRKT_DIV_CODE: 'J',
         FID_INPUT_ISCD: symbol,
+        FID_INPUT_DATE_1: fmt(d120),
+        FID_INPUT_DATE_2: fmt(now),
         FID_PERIOD_DIV_CODE: 'D',
         FID_ORG_ADJ_PRC: '0',
       },
-      token,
+      token: rToken,
+      baseUrl: DOMAINS.real,
+      keys: getRealKeys(),
     })
     const data = await res.json()
     if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
-    return data.output
+    const arr = data.output2 ?? data.output ?? []
+    return Array.isArray(arr) ? arr : []
   },
 
   // 잔고 조회
@@ -325,9 +376,10 @@ const actions: Record<string, ActionHandler> = {
   },
 
   // 재무비율
-  async 'financial-ratio'(params, token) {
+  async 'financial-ratio'(params, _token) {
     const symbol = params.symbol
     if (!symbol) throw new Error('symbol이 필요합니다.')
+    const rToken = await getRealToken()
 
     const res = await callKis({
       path: '/uapi/domestic-stock/v1/finance/financial-ratio',
@@ -337,7 +389,9 @@ const actions: Record<string, ActionHandler> = {
         FID_INPUT_ISCD: symbol,
         FID_DIV_CLS_CODE: '0',
       },
-      token,
+      token: rToken,
+      baseUrl: DOMAINS.real,
+      keys: getRealKeys(),
     })
     const data = await res.json()
     if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
@@ -345,9 +399,10 @@ const actions: Record<string, ActionHandler> = {
   },
 
   // 투자자별 매매동향
-  async 'investor-trend'(params, token) {
+  async 'investor-trend'(params, _token) {
     const symbol = params.symbol
     if (!symbol) throw new Error('symbol이 필요합니다.')
+    const rToken = await getRealToken()
 
     const res = await callKis({
       path: '/uapi/domestic-stock/v1/quotations/inquire-investor',
@@ -356,9 +411,74 @@ const actions: Record<string, ActionHandler> = {
         FID_COND_MRKT_DIV_CODE: 'J',
         FID_INPUT_ISCD: symbol,
       },
-      token,
+      token: rToken,
+      baseUrl: DOMAINS.real,
+      keys: getRealKeys(),
     })
     const data = await res.json()
+    if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
+    return data.output
+  },
+
+  // 거래량 순위 (커스텀 스크리너) — 실전 도메인에서만 지원
+  async 'volume-rank'(params, _token) {
+    const rToken = await getRealToken()
+    const market = params.market || 'J'
+    const res = await callKis({
+      path: '/uapi/domestic-stock/v1/quotations/volume-rank',
+      trId: 'FHPST01710000',
+      baseUrl: DOMAINS.real,
+      keys: getRealKeys(),
+      query: {
+        FID_COND_MRKT_DIV_CODE: market,
+        FID_COND_SCR_DIV_CODE: '20171',
+        FID_INPUT_ISCD: '0002',
+        FID_DIV_CLS_CODE: '0',
+        FID_BLNG_CLS_CODE: '0',
+        FID_TRGT_CLS_CODE: '111111111',
+        FID_TRGT_EXLS_CLS_CODE: '000000',
+        FID_INPUT_PRICE_1: params.price_min || '',
+        FID_INPUT_PRICE_2: params.price_max || '',
+        FID_VOL_CNT: params.vol_min || '',
+        FID_INPUT_DATE_1: '',
+      },
+      token: rToken,
+    })
+    const text = await res.text()
+    if (!text) throw new Error('KIS API 빈 응답 — 현재 앱키가 실전 도메인을 지원하지 않을 수 있습니다.')
+    const data = JSON.parse(text)
+    if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
+    return data.output
+  },
+
+  // 등락률 순위 — 실전 도메인에서만 지원
+  async 'fluctuation-rank'(params, _token) {
+    const rToken = await getRealToken()
+    const market = params.market || 'J'
+    const res = await callKis({
+      path: '/uapi/domestic-stock/v1/quotations/fluctuation-rank',
+      trId: 'FHPST01700000',
+      baseUrl: DOMAINS.real,
+      keys: getRealKeys(),
+      query: {
+        FID_COND_MRKT_DIV_CODE: market,
+        FID_COND_SCR_DIV_CODE: '20170',
+        FID_INPUT_ISCD: '0002',
+        FID_RANK_SORT_CLS_CODE: params.sort_dir || '0',
+        FID_INPUT_CNT_1: '0',
+        FID_PRC_CLS_CODE: '0',
+        FID_INPUT_PRICE_1: params.price_min || '',
+        FID_INPUT_PRICE_2: params.price_max || '',
+        FID_VOL_CNT: params.vol_min || '',
+        FID_TRGT_CLS_CODE: '111111111',
+        FID_TRGT_EXLS_CLS_CODE: '000000',
+        FID_INPUT_DATE_1: '',
+      },
+      token: rToken,
+    })
+    const text = await res.text()
+    if (!text) throw new Error('KIS API 빈 응답 — 현재 앱키가 실전 도메인을 지원하지 않을 수 있습니다.')
+    const data = JSON.parse(text)
     if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
     return data.output
   },
@@ -376,7 +496,7 @@ Deno.serve(async (req) => {
   let payload: { action?: string; params?: Record<string, string> }
   try {
     payload = await req.json()
-  } catch {
+  } catch (_) {
     return json({ error: { message: '잘못된 요청 본문입니다.' } }, 400)
   }
 

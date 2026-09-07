@@ -507,98 +507,209 @@ export default function TransactionsPage() {
             <DialogTitle>거래 일괄 추가</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-auto py-2">
-            <table className="w-full text-xs border-collapse" style={{ minWidth: '800px' }}>
-              <thead className="sticky top-0 z-10">
-                <tr className="bg-gray-100">
-                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '32px' }}>#</th>
-                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '130px' }}>날짜</th>
-                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '80px' }}>구분</th>
-                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '120px' }}>카테고리</th>
-                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '120px' }}>세부</th>
-                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '110px' }}>금액</th>
-                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '100px' }}>결제방법</th>
-                  <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap">메모</th>
-                  <th className="px-2 py-2" style={{ width: '32px' }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {bulkRows.map((row, idx) => {
-                  const rowTopCats = getTopLevel(row.type === 'transfer' ? undefined : row.type)
-                  const rowSubCats = row.category_id ? getChildren(row.category_id) : []
-                  return (
-                    <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50/50">
-                      <td className="px-2 py-1.5 text-gray-400 font-medium">{idx + 1}</td>
-                      <td className="px-1 py-1.5">
-                        <Input type="date" value={row.txn_date} onChange={e => updateBulkRow(idx, { txn_date: e.target.value })} className="h-7 text-xs rounded-md border-gray-200 px-1.5" />
-                      </td>
-                      <td className="px-1 py-1.5">
-                        <Select value={row.type} onValueChange={v => updateBulkRow(idx, { type: v as TransactionType, category_id: '', subcategory_id: '' })}>
-                          <SelectTrigger className="h-7 text-xs rounded-md border-gray-200 px-1.5"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="income">수입</SelectItem>
-                            <SelectItem value="expense">지출</SelectItem>
-                            <SelectItem value="transfer">이체</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="px-1 py-1.5">
+            {/* PC: 테이블 레이아웃 */}
+            <div className="hidden sm:block">
+              <table className="w-full text-xs border-collapse" style={{ minWidth: '800px' }}>
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-gray-100">
+                    <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '32px' }}>#</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '130px' }}>날짜</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '80px' }}>구분</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '120px' }}>카테고리</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '120px' }}>세부</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '110px' }}>금액</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap" style={{ width: '100px' }}>결제방법</th>
+                    <th className="px-2 py-2 text-left font-semibold text-gray-500 whitespace-nowrap">메모</th>
+                    <th className="px-2 py-2" style={{ width: '32px' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bulkRows.map((row, idx) => {
+                    const rowTopCats = getTopLevel(row.type === 'transfer' ? undefined : row.type)
+                    const rowSubCats = row.category_id ? getChildren(row.category_id) : []
+                    return (
+                      <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50/50">
+                        <td className="px-2 py-1.5 text-gray-400 font-medium">{idx + 1}</td>
+                        <td className="px-1 py-1.5">
+                          <Input type="date" value={row.txn_date} onChange={e => updateBulkRow(idx, { txn_date: e.target.value })} className="h-7 text-xs rounded-md border-gray-200 px-1.5" />
+                        </td>
+                        <td className="px-1 py-1.5">
+                          <Select value={row.type} onValueChange={v => updateBulkRow(idx, { type: v as TransactionType, category_id: '', subcategory_id: '' })}>
+                            <SelectTrigger className="h-7 text-xs rounded-md border-gray-200 px-1.5"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="income">수입</SelectItem>
+                              <SelectItem value="expense">지출</SelectItem>
+                              <SelectItem value="transfer">이체</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-1 py-1.5">
+                          <Select value={row.category_id} onValueChange={v => updateBulkRow(idx, { category_id: v, subcategory_id: '' })}>
+                            <SelectTrigger className="h-7 text-xs rounded-md border-gray-200 px-1.5"><SelectValue placeholder="선택" /></SelectTrigger>
+                            <SelectContent>
+                              {rowTopCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-1 py-1.5">
+                          <Select value={row.subcategory_id} onValueChange={v => updateBulkRow(idx, { subcategory_id: v })} disabled={rowSubCats.length === 0}>
+                            <SelectTrigger className="h-7 text-xs rounded-md border-gray-200 px-1.5"><SelectValue placeholder="선택" /></SelectTrigger>
+                            <SelectContent>
+                              {rowSubCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-1 py-1.5">
+                          <Input
+                            type="text"
+                            placeholder="0"
+                            value={row.amount ? Number(row.amount).toLocaleString('ko-KR') : ''}
+                            onChange={e => updateBulkRow(idx, { amount: String(parseAmountInput(e.target.value)) })}
+                            className="h-7 text-xs rounded-md border-gray-200 px-1.5 text-right"
+                          />
+                        </td>
+                        <td className="px-1 py-1.5">
+                          <Select value={row.payment_method} onValueChange={v => updateBulkRow(idx, { payment_method: v as PaymentMethod })}>
+                            <SelectTrigger className="h-7 text-xs rounded-md border-gray-200 px-1.5"><SelectValue placeholder="선택" /></SelectTrigger>
+                            <SelectContent>
+                              {PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-1 py-1.5">
+                          <Input
+                            placeholder="메모"
+                            value={row.memo}
+                            onChange={e => updateBulkRow(idx, { memo: e.target.value })}
+                            className="h-7 text-xs rounded-md border-gray-200 px-1.5"
+                          />
+                        </td>
+                        <td className="px-1 py-1.5 text-center">
+                          <button
+                            onClick={() => removeBulkRow(idx)}
+                            className="text-gray-300 hover:text-rose-500 transition-colors disabled:opacity-30"
+                            disabled={bulkRows.length <= 1}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 모바일: 카드 레이아웃 */}
+            <div className="sm:hidden space-y-3">
+              {bulkRows.map((row, idx) => {
+                const rowTopCats = getTopLevel(row.type === 'transfer' ? undefined : row.type)
+                const rowSubCats = row.category_id ? getChildren(row.category_id) : []
+                const typeColor = row.type === 'income' ? 'bg-emerald-100 text-emerald-700' : row.type === 'expense' ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700'
+                return (
+                  <div key={idx} className="rounded-xl border border-gray-200 bg-white p-3 space-y-2.5">
+                    {/* 카드 헤더: 번호, 구분, 삭제 */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-400 w-5">{idx + 1}</span>
+                        <div className="flex gap-1">
+                          {(['expense', 'income', 'transfer'] as TransactionType[]).map(t => (
+                            <button
+                              key={t}
+                              onClick={() => updateBulkRow(idx, { type: t, category_id: '', subcategory_id: '' })}
+                              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                                row.type === t ? typeColor : 'bg-gray-100 text-gray-400'
+                              }`}
+                            >
+                              {t === 'income' ? '수입' : t === 'expense' ? '지출' : '이체'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => removeBulkRow(idx)}
+                        className="text-gray-300 hover:text-rose-500 transition-colors disabled:opacity-30 p-1"
+                        disabled={bulkRows.length <= 1}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* 날짜 + 금액 */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-medium text-gray-400 mb-0.5 block">날짜</label>
+                        <Input
+                          type="date"
+                          value={row.txn_date}
+                          onChange={e => updateBulkRow(idx, { txn_date: e.target.value })}
+                          className="h-9 text-sm rounded-lg border-gray-200"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-medium text-gray-400 mb-0.5 block">금액</label>
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="0"
+                          value={row.amount ? Number(row.amount).toLocaleString('ko-KR') : ''}
+                          onChange={e => updateBulkRow(idx, { amount: String(parseAmountInput(e.target.value)) })}
+                          className="h-9 text-sm rounded-lg border-gray-200 text-right font-semibold"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 카테고리 + 세부 */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-medium text-gray-400 mb-0.5 block">카테고리</label>
                         <Select value={row.category_id} onValueChange={v => updateBulkRow(idx, { category_id: v, subcategory_id: '' })}>
-                          <SelectTrigger className="h-7 text-xs rounded-md border-gray-200 px-1.5"><SelectValue placeholder="선택" /></SelectTrigger>
+                          <SelectTrigger className="h-9 text-sm rounded-lg border-gray-200"><SelectValue placeholder="선택" /></SelectTrigger>
                           <SelectContent>
                             {rowTopCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                      </td>
-                      <td className="px-1 py-1.5">
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-medium text-gray-400 mb-0.5 block">세부</label>
                         <Select value={row.subcategory_id} onValueChange={v => updateBulkRow(idx, { subcategory_id: v })} disabled={rowSubCats.length === 0}>
-                          <SelectTrigger className="h-7 text-xs rounded-md border-gray-200 px-1.5"><SelectValue placeholder="선택" /></SelectTrigger>
+                          <SelectTrigger className="h-9 text-sm rounded-lg border-gray-200"><SelectValue placeholder="선택" /></SelectTrigger>
                           <SelectContent>
                             {rowSubCats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                      </td>
-                      <td className="px-1 py-1.5">
-                        <Input
-                          type="text"
-                          placeholder="0"
-                          value={row.amount ? Number(row.amount).toLocaleString('ko-KR') : ''}
-                          onChange={e => updateBulkRow(idx, { amount: String(parseAmountInput(e.target.value)) })}
-                          className="h-7 text-xs rounded-md border-gray-200 px-1.5 text-right"
-                        />
-                      </td>
-                      <td className="px-1 py-1.5">
+                      </div>
+                    </div>
+
+                    {/* 결제방법 + 메모 */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-medium text-gray-400 mb-0.5 block">결제방법</label>
                         <Select value={row.payment_method} onValueChange={v => updateBulkRow(idx, { payment_method: v as PaymentMethod })}>
-                          <SelectTrigger className="h-7 text-xs rounded-md border-gray-200 px-1.5"><SelectValue placeholder="선택" /></SelectTrigger>
+                          <SelectTrigger className="h-9 text-sm rounded-lg border-gray-200"><SelectValue placeholder="선택" /></SelectTrigger>
                           <SelectContent>
                             {PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                      </td>
-                      <td className="px-1 py-1.5">
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-medium text-gray-400 mb-0.5 block">메모</label>
                         <Input
                           placeholder="메모"
                           value={row.memo}
                           onChange={e => updateBulkRow(idx, { memo: e.target.value })}
-                          className="h-7 text-xs rounded-md border-gray-200 px-1.5"
+                          className="h-9 text-sm rounded-lg border-gray-200"
                         />
-                      </td>
-                      <td className="px-1 py-1.5 text-center">
-                        <button
-                          onClick={() => removeBulkRow(idx)}
-                          className="text-gray-300 hover:text-rose-500 transition-colors disabled:opacity-30"
-                          disabled={bulkRows.length <= 1}
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
             <button
               onClick={addBulkRow}
-              className="w-full mt-2 py-2 border-2 border-dashed border-gray-300 rounded-xl text-xs text-gray-400 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center gap-1"
+              className="w-full mt-2 py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-xs text-gray-400 hover:border-indigo-300 hover:text-indigo-500 transition-colors flex items-center justify-center gap-1"
             >
               <Plus className="w-3.5 h-3.5" /> 행 추가
             </button>

@@ -21,6 +21,8 @@ export function kisDevProxy(mode: string): Plugin {
   const env = loadEnv(mode, process.cwd(), '')
   const appkey = env.KIS_APPKEY ?? ''
   const appsecret = env.KIS_APPSECRET ?? ''
+  const realAppkey = env.KIS_REAL_APPKEY || appkey
+  const realAppsecret = env.KIS_REAL_APPSECRET || appsecret
   const accountNo = (env.KIS_ACCOUNT_NO ?? '').replace(/-/g, '')
   const kisMode: KisMode = env.KIS_MODE === 'real' ? 'real' : 'paper'
   const base = DOMAINS[kisMode]
@@ -64,6 +66,32 @@ export function kisDevProxy(mode: string): Plugin {
     return await issueToken()
   }
 
+  // 실전 도메인 전용 토큰 (ranking 등 모의투자 미지원 API)
+  let realCachedToken: string | null = null
+  let realTokenExpiresAt = 0
+
+  async function getRealToken(): Promise<string> {
+    if (kisMode === 'real') return await getToken()
+    if (realCachedToken && Date.now() < realTokenExpiresAt) return realCachedToken
+
+    const res = await fetch(`${DOMAINS.real}/oauth2/tokenP`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grant_type: 'client_credentials', appkey: realAppkey, appsecret: realAppsecret }),
+    })
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+    if (!res.ok || data.error_description) {
+      throw new Error(`실전 토큰 발급 실패: ${data.error_description ?? data.msg1 ?? '실전 앱키(KIS_REAL_APPKEY)를 확인해주세요.'}`)
+    }
+    realCachedToken = data.access_token as string
+    if (data.access_token_token_expired) {
+      realTokenExpiresAt = new Date(data.access_token_token_expired as string).getTime() - 60_000
+    } else {
+      realTokenExpiresAt = Date.now() + 23 * 60 * 60 * 1000
+    }
+    return realCachedToken!
+  }
+
   interface CallOpts {
     method?: 'GET' | 'POST'
     path: string
@@ -73,6 +101,7 @@ export function kisDevProxy(mode: string): Plugin {
     token: string
     extraHeaders?: Record<string, string>
     useRealDomain?: boolean
+    useRealKeys?: boolean
   }
 
   async function callKis(opts: CallOpts): Promise<Response> {
@@ -83,11 +112,13 @@ export function kisDevProxy(mode: string): Plugin {
         if (v !== undefined) url.searchParams.set(k, v)
       }
     }
+    const ak = opts.useRealKeys ? realAppkey : appkey
+    const as_ = opts.useRealKeys ? realAppsecret : appsecret
     const headers: Record<string, string> = {
       'content-type': 'application/json; charset=utf-8',
       authorization: `Bearer ${opts.token}`,
-      appkey,
-      appsecret,
+      appkey: ak,
+      appsecret: as_,
       tr_id: opts.trId,
       custtype: 'P',
       ...opts.extraHeaders,
@@ -122,21 +153,42 @@ export function kisDevProxy(mode: string): Plugin {
       return data.output
     },
 
-    async 'daily-prices'(params, token) {
-      const res = await callKis({
-        path: '/uapi/domestic-stock/v1/quotations/inquire-daily-price',
-        trId: 'FHKST01010400',
-        query: {
-          FID_COND_MRKT_DIV_CODE: 'J',
-          FID_INPUT_ISCD: params.symbol,
-          FID_PERIOD_DIV_CODE: 'D',
-          FID_ORG_ADJ_PRC: '0',
-        },
-        token,
-      })
-      const data = await res.json() as KisResp
-      if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
-      return data.output
+    async 'daily-prices'(params, _token) {
+      const rToken = await getRealToken()
+      const now = new Date()
+      const d120 = new Date(now)
+      d120.setDate(d120.getDate() - 120)
+      const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '')
+
+      const doCall = async () => {
+        const res = await callKis({
+          path: '/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice',
+          trId: 'FHKST03010100',
+          query: {
+            FID_COND_MRKT_DIV_CODE: 'J',
+            FID_INPUT_ISCD: params.symbol,
+            FID_INPUT_DATE_1: fmt(d120),
+            FID_INPUT_DATE_2: fmt(now),
+            FID_PERIOD_DIV_CODE: 'D',
+            FID_ORG_ADJ_PRC: '0',
+          },
+          token: rToken,
+          useRealDomain: true,
+          useRealKeys: true,
+        })
+        const data = await res.json() as KisResp
+        console.log(`[KIS daily-prices] symbol=${params.symbol} rt_cd=${data.rt_cd} msg=${data.msg1} output=${Array.isArray(data.output) ? data.output.length : typeof data.output} output2=${Array.isArray(data.output2) ? data.output2.length : typeof data.output2}`)
+        if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
+        const arr = data.output2 ?? data.output ?? []
+        return Array.isArray(arr) ? arr : []
+      }
+
+      try {
+        return await doCall()
+      } catch (_) {
+        await new Promise(r => setTimeout(r, 1000))
+        return await doCall()
+      }
     },
 
     async balance(_p, token) {
@@ -193,12 +245,15 @@ export function kisDevProxy(mode: string): Plugin {
       return await res.json() as KisResp
     },
 
-    async 'financial-ratio'(params, token) {
+    async 'financial-ratio'(params, _token) {
+      const rToken = await getRealToken()
       const res = await callKis({
         path: '/uapi/domestic-stock/v1/finance/financial-ratio',
         trId: 'FHKST66430300',
         query: { FID_COND_MRKT_DIV_CODE: 'J', FID_INPUT_ISCD: params.symbol, FID_DIV_CLS_CODE: '0' },
-        token,
+        token: rToken,
+        useRealDomain: true,
+        useRealKeys: true,
       })
       const data = await res.json() as KisResp
       if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
@@ -276,16 +331,80 @@ export function kisDevProxy(mode: string): Plugin {
       return allResults
     },
 
-    async 'investor-trend'(params, token) {
+    async 'investor-trend'(params, _token) {
+      const rToken = await getRealToken()
       const res = await callKis({
         path: '/uapi/domestic-stock/v1/quotations/inquire-investor',
         trId: 'FHKST01010900',
         query: { FID_COND_MRKT_DIV_CODE: 'J', FID_INPUT_ISCD: params.symbol },
-        token,
+        token: rToken,
+        useRealDomain: true,
+        useRealKeys: true,
       })
       const data = await res.json() as KisResp
       if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
       return data.output
+    },
+
+    async 'volume-rank'(params, _token) {
+      const rToken = await getRealToken()
+      const res = await callKis({
+        path: '/uapi/domestic-stock/v1/quotations/volume-rank',
+        trId: 'FHPST01710000',
+        useRealDomain: true,
+        useRealKeys: true,
+        query: {
+          FID_COND_MRKT_DIV_CODE: params.market || 'J',
+          FID_COND_SCR_DIV_CODE: '20171',
+          FID_INPUT_ISCD: '0002',
+          FID_DIV_CLS_CODE: '0',
+          FID_BLNG_CLS_CODE: '0',
+          FID_TRGT_CLS_CODE: '111111111',
+          FID_TRGT_EXLS_CLS_CODE: '000000',
+          FID_INPUT_PRICE_1: params.price_min || '',
+          FID_INPUT_PRICE_2: params.price_max || '',
+          FID_VOL_CNT: params.vol_min || '',
+          FID_INPUT_DATE_1: '',
+        },
+        token: rToken,
+      })
+      const text = await res.text()
+      if (!text) throw new Error('KIS API 빈 응답')
+      const data = JSON.parse(text) as KisResp
+      if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
+      console.log(`[KIS volume-rank] market=${params.market} price=${params.price_min||'*'}~${params.price_max||'*'} items=${(data.output??[]).length}`)
+      return data.output ?? []
+    },
+
+    async 'fluctuation-rank'(params, _token) {
+      const rToken = await getRealToken()
+      const res = await callKis({
+        path: '/uapi/domestic-stock/v1/quotations/fluctuation-rank',
+        trId: 'FHPST01700000',
+        useRealDomain: true,
+        useRealKeys: true,
+        query: {
+          FID_COND_MRKT_DIV_CODE: params.market || 'J',
+          FID_COND_SCR_DIV_CODE: '20170',
+          FID_INPUT_ISCD: '0002',
+          FID_RANK_SORT_CLS_CODE: params.sort_dir || '0',
+          FID_INPUT_CNT_1: '0',
+          FID_PRC_CLS_CODE: '0',
+          FID_INPUT_PRICE_1: params.price_min || '',
+          FID_INPUT_PRICE_2: params.price_max || '',
+          FID_VOL_CNT: params.vol_min || '',
+          FID_TRGT_CLS_CODE: '111111111',
+          FID_TRGT_EXLS_CLS_CODE: '000000',
+          FID_INPUT_DATE_1: '',
+        },
+        token: rToken,
+      })
+      const text = await res.text()
+      if (!text) throw new Error('KIS API 빈 응답')
+      const data = JSON.parse(text) as KisResp
+      if (data.rt_cd !== '0') throw new Error(data.msg1 ?? 'API 오류')
+      console.log(`[KIS fluctuation-rank] market=${params.market} price=${params.price_min||'*'}~${params.price_max||'*'} items=${(data.output??[]).length}`)
+      return data.output ?? []
     },
   }
 

@@ -106,6 +106,22 @@ export interface KisConditionStock {
   market_cap: string       // 시가총액
 }
 
+export interface KisRankItem {
+  hts_kor_isnm: string     // 종목명
+  mksc_shrn_iscd: string   // 종목코드
+  data_rank: string        // 순위
+  stck_prpr: string        // 현재가
+  prdy_vrss: string        // 전일대비
+  prdy_vrss_sign: string   // 부호
+  prdy_ctrt: string        // 전일대비율
+  acml_vol: string         // 누적거래량
+  stck_hgpr: string        // 최고가
+  stck_lwpr: string        // 최저가
+  lstn_stcn?: string       // 상장주수
+  avrg_vol?: string        // 평균거래량
+  tr_pbmn?: string         // 거래대금
+}
+
 // ---- 내부 호출 ----
 interface ProxyArgs {
   action: string
@@ -183,4 +199,12 @@ export const kisApi = {
   // 조건검색 결과조회 (조건식에 해당하는 종목 리스트)
   conditionSearch: (seq: string) =>
     call<KisConditionStock[]>({ action: 'condition-search', params: { seq } }),
+
+  // 거래량 순위 (커스텀 스크리너)
+  volumeRank: (filters: { market?: string; price_min?: string; price_max?: string; vol_min?: string }) =>
+    call<KisRankItem[]>({ action: 'volume-rank', params: filters }),
+
+  // 등락률 순위
+  fluctuationRank: (filters: { market?: string; price_min?: string; price_max?: string; vol_min?: string; sort_dir?: string }) =>
+    call<KisRankItem[]>({ action: 'fluctuation-rank', params: filters }),
 }
