@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react'
-import { Database, Download, Clock, CheckCircle2, AlertCircle, Plus, Trash2, RefreshCw, Play, X, Filter, Search, Loader2, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react'
+import { Database, Download, Clock, CheckCircle2, AlertCircle, Plus, Trash2, RefreshCw, Play, X, Filter, Search, Loader2, TrendingUp, TrendingDown, BarChart3, ShoppingCart } from 'lucide-react'
 import { useKisStatus } from '@/hooks/useKis'
 import { kisApi } from '@/lib/kis'
-import type { KisDailyPrice, KisFinancialRatio, KisInvestorTrend, KisRankItem } from '@/lib/kis'
+import type { KisDailyPrice, KisFinancialRatio, KisInvestorTrend, KisRankItem, KisOrderResult } from '@/lib/kis'
 
 // ─── 공통 유틸 ──────────────────────────────────────────────
 
@@ -228,6 +228,157 @@ const DEFAULT_SECONDARY: SecondaryFilters = {
   consecutiveUpMin: '', disparityMin: '', disparityMax: '',
 }
 
+// ─── 주문 모달 ────────────────────────────────────────────
+
+interface OrderTarget {
+  code: string
+  name: string
+  price: number
+}
+
+function OrderModal({ target, onClose, connected }: { target: OrderTarget; onClose: () => void; connected: boolean }) {
+  const [side, setSide] = useState<'buy' | 'sell'>('buy')
+  const [orderType, setOrderType] = useState<'limit' | 'market'>('limit')
+  const [qty, setQty] = useState('1')
+  const [price, setPrice] = useState(String(target.price))
+  const [submitting, setSubmitting] = useState(false)
+  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
+
+  const totalAmount = orderType === 'market' ? null : Number(qty) * Number(price)
+
+  const handleSubmit = async () => {
+    const q = Number(qty)
+    const p = Number(price)
+    if (q <= 0) return
+    if (orderType === 'limit' && p <= 0) return
+
+    setSubmitting(true)
+    setResult(null)
+    try {
+      let res: KisOrderResult
+      if (side === 'buy') {
+        res = await kisApi.orderBuy(target.code, q, p, orderType)
+      } else {
+        res = await kisApi.orderSell(target.code, q, p, orderType)
+      }
+      if (res.rt_cd === '0') {
+        setResult({ success: true, message: `${side === 'buy' ? '매수' : '매도'} 주문 완료 (주문번호: ${res.odno || res.ord_no || '-'})` })
+      } else {
+        setResult({ success: false, message: res.msg1 || '주문 실패' })
+      }
+    } catch (e) {
+      setResult({ success: false, message: (e as Error).message })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-gray-900">{target.name}</h3>
+            <p className="text-xs text-gray-400">{target.code} · 현재가 {target.price.toLocaleString('ko-KR')}원</p>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-5 w-5 text-gray-400" /></button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* 매수/매도 탭 */}
+          <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+            <button onClick={() => setSide('buy')}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${side === 'buy' ? 'bg-red-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              매수
+            </button>
+            <button onClick={() => setSide('sell')}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${side === 'sell' ? 'bg-blue-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              매도
+            </button>
+          </div>
+
+          {/* 주문 유형 */}
+          <div>
+            <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">주문 유형</label>
+            <div className="flex gap-2">
+              <button onClick={() => setOrderType('limit')}
+                className={`flex-1 py-2 rounded-lg text-xs font-medium border-2 transition-colors ${orderType === 'limit' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500'}`}>
+                지정가
+              </button>
+              <button onClick={() => setOrderType('market')}
+                className={`flex-1 py-2 rounded-lg text-xs font-medium border-2 transition-colors ${orderType === 'market' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500'}`}>
+                시장가
+              </button>
+            </div>
+          </div>
+
+          {/* 수량 */}
+          <div>
+            <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">수량 (주)</label>
+            <div className="flex gap-2">
+              <input type="text" inputMode="numeric" value={qty}
+                onChange={e => setQty(e.target.value.replace(/[^0-9]/g, ''))}
+                className="flex-1 px-3 py-2.5 rounded-lg border text-sm font-medium text-right focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <div className="flex gap-1">
+                {[1, 5, 10, 50].map(n => (
+                  <button key={n} onClick={() => setQty(String(n))}
+                    className="px-2 py-1 rounded-lg bg-gray-100 text-[11px] font-medium text-gray-600 hover:bg-gray-200">
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 가격 (지정가만) */}
+          {orderType === 'limit' && (
+            <div>
+              <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">가격 (원)</label>
+              <div className="flex gap-2">
+                <input type="text" inputMode="numeric" value={price}
+                  onChange={e => setPrice(e.target.value.replace(/[^0-9]/g, ''))}
+                  className="flex-1 px-3 py-2.5 rounded-lg border text-sm font-medium text-right focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <button onClick={() => setPrice(String(target.price))}
+                  className="px-3 py-1 rounded-lg bg-gray-100 text-[11px] font-medium text-gray-600 hover:bg-gray-200 whitespace-nowrap">
+                  현재가
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 예상 금액 */}
+          {totalAmount != null && Number(qty) > 0 && (
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-gray-50">
+              <span className="text-xs text-gray-500">예상 주문금액</span>
+              <span className="text-sm font-bold text-gray-900">{totalAmount.toLocaleString('ko-KR')}원</span>
+            </div>
+          )}
+
+          {/* 결과 메시지 */}
+          {result && (
+            <div className={`rounded-lg p-3 ${result.success ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
+              <p className={`text-xs flex items-center gap-1.5 ${result.success ? 'text-emerald-700' : 'text-red-600'}`}>
+                {result.success ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+                {result.message}
+              </p>
+            </div>
+          )}
+
+          {/* 주문 버튼 */}
+          <button onClick={handleSubmit} disabled={!connected || submitting || Number(qty) <= 0}
+            className={`w-full py-3 rounded-xl text-sm font-bold text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+              side === 'buy' ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+            {submitting ? '주문 중...' : `${side === 'buy' ? '매수' : '매도'} 주문`}
+          </button>
+
+          {!connected && <p className="text-xs text-amber-600 text-center">KIS API 연결이 필요합니다.</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function ScreenerPanel({ connected }: { connected: boolean }) {
   const [filters, setFilters] = useState<ScreenerFilters>({
     mode: 'volume', market: '', priceMin: '', priceMax: '', volMin: '',
@@ -242,6 +393,7 @@ function ScreenerPanel({ connected }: { connected: boolean }) {
   const [sortKey, setSortKey] = useState<string>('data_rank')
   const [sortAsc, setSortAsc] = useState(true)
   const [tablePage, setTablePage] = useState(0)
+  const [orderTarget, setOrderTarget] = useState<OrderTarget | null>(null)
   const PAGE_SIZE = 30
 
   const runSearch = async () => {
@@ -775,7 +927,8 @@ function ScreenerPanel({ connected }: { connected: boolean }) {
                     const loading = e?.loading
                     const Spin = () => <Loader2 className="h-3 w-3 animate-spin inline text-gray-300" />
                     return (
-                      <tr key={r.mksc_shrn_iscd} className="border-b last:border-0 hover:bg-gray-50">
+                      <tr key={r.mksc_shrn_iscd} className="border-b last:border-0 hover:bg-gray-50 cursor-pointer"
+                        onClick={() => setOrderTarget({ code: r.mksc_shrn_iscd, name: r.hts_kor_isnm, price: Number(r.stck_prpr) })}>
                         <td className="py-2 px-1.5 text-center text-gray-400 font-medium">{r.data_rank}</td>
                         <td className="py-2 px-1.5">
                           <span className="font-medium text-gray-900">{r.hts_kor_isnm}</span>
@@ -875,6 +1028,9 @@ function ScreenerPanel({ connected }: { connected: boolean }) {
           )}
         </div>
       )}
+
+      {/* 주문 모달 */}
+      {orderTarget && <OrderModal target={orderTarget} onClose={() => setOrderTarget(null)} connected={connected} />}
     </div>
   )
 }

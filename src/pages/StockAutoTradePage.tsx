@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { Play, Square, Plus, Trash2, AlertTriangle, RefreshCw, X, Search } from 'lucide-react'
+import { Play, Square, Plus, Trash2, AlertTriangle, RefreshCw, X, Search, ShoppingCart, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { useKisStatus, useKisBalance, useKisPrice } from '@/hooks/useKis'
 import { useStockStrategies, useStockOrders, useTradeLogs } from '@/hooks/useStockStrategies'
 import type { StrategyInput } from '@/hooks/useStockStrategies'
 import { searchStocks } from '@/lib/stockList'
-import type { KisBalance } from '@/lib/kis'
+import { kisApi } from '@/lib/kis'
+import type { KisBalance, KisOrderResult } from '@/lib/kis'
 
 type StrategyType = 'buy' | 'sell' | 'both'
 
@@ -212,6 +213,223 @@ function StrategyPriceTag({ symbol }: { symbol: string }) {
     <span className={`text-xs font-medium ${isUp ? 'text-red-600' : isDown ? 'text-blue-600' : 'text-gray-600'}`}>
       {Number(data.stck_prpr).toLocaleString()}원
     </span>
+  )
+}
+
+// ─── 수동 주문 모달 ─────────────────────────────────────────
+
+function ManualOrderModal({ open, onClose, connected, onOrderComplete }: {
+  open: boolean; onClose: () => void; connected: boolean; onOrderComplete?: () => void
+}) {
+  const [side, setSide] = useState<'buy' | 'sell'>('buy')
+  const [orderType, setOrderType] = useState<'limit' | 'market'>('limit')
+  const [qty, setQty] = useState('1')
+  const [price, setPrice] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
+
+  const [symbolQuery, setSymbolQuery] = useState('')
+  const [selectedSymbol, setSelectedSymbol] = useState<{ code: string; name: string } | null>(null)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [hlIndex, setHlIndex] = useState(-1)
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null)
+  const [loadingPrice, setLoadingPrice] = useState(false)
+
+  const suggestions = searchStocks(symbolQuery)
+
+  useEffect(() => {
+    if (!open) {
+      setSide('buy'); setOrderType('limit'); setQty('1'); setPrice('')
+      setSubmitting(false); setResult(null)
+      setSymbolQuery(''); setSelectedSymbol(null); setCurrentPrice(null)
+    }
+  }, [open])
+
+  useEffect(() => { setHlIndex(-1) }, [symbolQuery])
+
+  const pickSymbol = async (s: { code: string; name: string }) => {
+    setSelectedSymbol(s)
+    setSymbolQuery(`${s.name} (${s.code})`)
+    setShowDropdown(false)
+    setResult(null)
+    setLoadingPrice(true)
+    try {
+      const p = await kisApi.price(s.code)
+      const cur = Number(p.stck_prpr)
+      setCurrentPrice(cur)
+      setPrice(String(cur))
+    } catch { setCurrentPrice(null) }
+    finally { setLoadingPrice(false) }
+  }
+
+  const handleSymbolKey = (e: React.KeyboardEvent) => {
+    if (!showDropdown || suggestions.length === 0) return
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHlIndex(i => Math.min(i + 1, suggestions.length - 1)) }
+    if (e.key === 'ArrowUp') { e.preventDefault(); setHlIndex(i => Math.max(i - 1, 0)) }
+    if (e.key === 'Enter' && hlIndex >= 0) { e.preventDefault(); pickSymbol(suggestions[hlIndex]) }
+    if (e.key === 'Escape') setShowDropdown(false)
+  }
+
+  const totalAmount = orderType === 'market' ? null : Number(qty) * Number(price)
+  const canSubmit = connected && selectedSymbol && Number(qty) > 0 && (orderType === 'market' || Number(price) > 0)
+
+  const handleSubmit = async () => {
+    if (!canSubmit || !selectedSymbol) return
+    setSubmitting(true); setResult(null)
+    try {
+      const q = Number(qty), p = Number(price)
+      let res: KisOrderResult
+      if (side === 'buy') {
+        res = await kisApi.orderBuy(selectedSymbol.code, q, p, orderType)
+      } else {
+        res = await kisApi.orderSell(selectedSymbol.code, q, p, orderType)
+      }
+      if (res.rt_cd === '0') {
+        setResult({ success: true, message: `${side === 'buy' ? '매수' : '매도'} 주문 완료 (주문번호: ${res.odno || res.ord_no || '-'})` })
+        onOrderComplete?.()
+      } else {
+        setResult({ success: false, message: res.msg1 || '주문 실패' })
+      }
+    } catch (e) {
+      setResult({ success: false, message: (e as Error).message })
+    } finally { setSubmitting(false) }
+  }
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b flex items-center justify-between">
+          <h3 className="text-base font-bold text-gray-900">수동 주문</h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100"><X className="h-5 w-5 text-gray-400" /></button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* 종목 검색 */}
+          <div>
+            <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">종목 선택</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+              <input value={symbolQuery}
+                onChange={e => { setSymbolQuery(e.target.value); setSelectedSymbol(null); setShowDropdown(true); setCurrentPrice(null) }}
+                onFocus={() => setShowDropdown(true)}
+                onKeyDown={handleSymbolKey}
+                placeholder="종목명 또는 코드 검색"
+                className="w-full pl-9 pr-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              {showDropdown && suggestions.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {suggestions.map((s, i) => (
+                    <button key={s.code} onClick={() => pickSymbol(s)}
+                      className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${i === hlIndex ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-gray-50'}`}>
+                      <span className="font-medium">{s.name}</span>
+                      <span className="text-xs text-gray-400">{s.code}</span>
+                      <span className="text-[10px] text-gray-300 ml-auto">{s.market}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {selectedSymbol && (
+              <p className="text-xs text-gray-500 mt-1">
+                현재가: {loadingPrice ? '조회 중...' : currentPrice ? `${currentPrice.toLocaleString('ko-KR')}원` : '-'}
+              </p>
+            )}
+          </div>
+
+          {/* 매수/매도 탭 */}
+          <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+            <button onClick={() => setSide('buy')}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${side === 'buy' ? 'bg-red-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              매수
+            </button>
+            <button onClick={() => setSide('sell')}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${side === 'sell' ? 'bg-blue-500 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              매도
+            </button>
+          </div>
+
+          {/* 주문 유형 */}
+          <div>
+            <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">주문 유형</label>
+            <div className="flex gap-2">
+              <button onClick={() => setOrderType('limit')}
+                className={`flex-1 py-2 rounded-lg text-xs font-medium border-2 transition-colors ${orderType === 'limit' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500'}`}>
+                지정가
+              </button>
+              <button onClick={() => setOrderType('market')}
+                className={`flex-1 py-2 rounded-lg text-xs font-medium border-2 transition-colors ${orderType === 'market' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500'}`}>
+                시장가
+              </button>
+            </div>
+          </div>
+
+          {/* 수량 */}
+          <div>
+            <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">수량 (주)</label>
+            <div className="flex gap-2">
+              <input type="text" inputMode="numeric" value={qty}
+                onChange={e => setQty(e.target.value.replace(/[^0-9]/g, ''))}
+                className="flex-1 px-3 py-2.5 rounded-lg border text-sm font-medium text-right focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <div className="flex gap-1">
+                {[1, 5, 10, 50].map(n => (
+                  <button key={n} onClick={() => setQty(String(n))}
+                    className="px-2 py-1 rounded-lg bg-gray-100 text-[11px] font-medium text-gray-600 hover:bg-gray-200">
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 가격 (지정가) */}
+          {orderType === 'limit' && (
+            <div>
+              <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">가격 (원)</label>
+              <div className="flex gap-2">
+                <input type="text" inputMode="numeric" value={price}
+                  onChange={e => setPrice(e.target.value.replace(/[^0-9]/g, ''))}
+                  className="flex-1 px-3 py-2.5 rounded-lg border text-sm font-medium text-right focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                {currentPrice && (
+                  <button onClick={() => setPrice(String(currentPrice))}
+                    className="px-3 py-1 rounded-lg bg-gray-100 text-[11px] font-medium text-gray-600 hover:bg-gray-200 whitespace-nowrap">
+                    현재가
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 예상 금액 */}
+          {totalAmount != null && Number(qty) > 0 && Number(price) > 0 && (
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-gray-50">
+              <span className="text-xs text-gray-500">예상 주문금액</span>
+              <span className="text-sm font-bold text-gray-900">{totalAmount.toLocaleString('ko-KR')}원</span>
+            </div>
+          )}
+
+          {/* 결과 */}
+          {result && (
+            <div className={`rounded-lg p-3 ${result.success ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
+              <p className={`text-xs flex items-center gap-1.5 ${result.success ? 'text-emerald-700' : 'text-red-600'}`}>
+                {result.success ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+                {result.message}
+              </p>
+            </div>
+          )}
+
+          {/* 주문 버튼 */}
+          <button onClick={handleSubmit} disabled={!canSubmit || submitting}
+            className={`w-full py-3 rounded-xl text-sm font-bold text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+              side === 'buy' ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}>
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+            {submitting ? '주문 중...' : `${side === 'buy' ? '매수' : '매도'} 주문`}
+          </button>
+
+          {!connected && <p className="text-xs text-amber-600 text-center">KIS API 연결이 필요합니다.</p>}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -544,6 +762,7 @@ export default function StockAutoTradePage() {
   const connected = status?.connected ?? false
   const { data: balanceData, isLoading: balanceLoading, refetch: refetchBalance } = useKisBalance(connected)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showOrderModal, setShowOrderModal] = useState(false)
 
   const toggleStrategy = (id: string) => {
     const s = strategies.find(s => s.id === id)
@@ -581,13 +800,22 @@ export default function StockAutoTradePage() {
             )}
           </div>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 transition-colors"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          전략 추가
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowOrderModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs font-medium hover:bg-gray-800 transition-colors"
+          >
+            <ShoppingCart className="h-3.5 w-3.5" />
+            수동 주문
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            전략 추가
+          </button>
+        </div>
       </div>
 
       {!connected && !statusLoading && (
@@ -780,6 +1008,13 @@ export default function StockAutoTradePage() {
         <AlertTriangle className="h-3 w-3 text-gray-300" />
         자동매매는 시장 상황에 따라 손실이 발생할 수 있습니다. 반드시 모의투자로 테스트 후 실전 적용하세요.
       </p>
+
+      <ManualOrderModal
+        open={showOrderModal}
+        onClose={() => setShowOrderModal(false)}
+        connected={connected}
+        onOrderComplete={() => refetchBalance()}
+      />
 
       <AddStrategyModal
         open={showAddModal}
