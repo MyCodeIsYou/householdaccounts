@@ -25,6 +25,15 @@ export function useHouseholds() {
         .insert({ household_id: hh.id, user_id: user.id, role: 'owner' })
       if (memErr) throw memErr
 
+      const { error: seedErr } = await supabase.rpc('seed_default_categories_for_household', {
+        p_household_id: hh.id,
+        p_owner_id: user.id,
+      })
+      if (seedErr) {
+        await supabase.from('households').delete().eq('id', hh.id)
+        throw seedErr
+      }
+
       return hh
     },
     onSuccess: () => {

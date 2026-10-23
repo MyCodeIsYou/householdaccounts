@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
-export type ThemeName = 'watercolor' | 'toss' | 'shinhan'
+export type ThemeName = 'watercolor' | 'toss' | 'shinhan' | 'cyber' | 'log'
 
 interface ThemeContextValue {
   theme: ThemeName
@@ -15,7 +15,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeName>(() => {
     if (typeof window === 'undefined') return 'watercolor'
     const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored === 'toss' || stored === 'shinhan' || stored === 'watercolor') {
+    if (stored === 'linux') return 'log'
+    if (stored === 'toss' || stored === 'shinhan' || stored === 'watercolor' || stored === 'cyber' || stored === 'log') {
       return stored
     }
     return 'watercolor'
@@ -23,6 +24,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
+    if (localStorage.getItem(STORAGE_KEY) === 'linux') {
+      localStorage.setItem(STORAGE_KEY, 'log')
+    }
   }, [theme])
 
   const setTheme = (newTheme: ThemeName) => {

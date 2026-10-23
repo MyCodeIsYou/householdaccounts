@@ -1,21 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/context/AuthContext'
+import { useHouseholdFilter } from '@/hooks/useHouseholdFilter'
 import type { Category, PlanGroup, TransactionType } from '@/types'
 
 export function useCategories() {
-  const { user } = useAuth()
+  const { user, scopeKey, applyFilter, insertScope } = useHouseholdFilter()
   const qc = useQueryClient()
 
   const query = useQuery({
-    queryKey: ['categories', user?.id],
+    queryKey: ['categories', scopeKey],
     queryFn: async () => {
       if (!user) return []
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('display_order', { ascending: true })
+      const { data, error } = await applyFilter(
+        supabase.from('categories').select('*')
+      ).order('display_order', { ascending: true })
       if (error) throw error
       return (data ?? []) as Category[]
     },
@@ -47,8 +45,7 @@ export function useCategories() {
     return categories.find(c => c.id === id)
   }
 
-  // ─── CRUD ────────────────────────────────────────────────────────────────
-  const invalidate = () => qc.invalidateQueries({ queryKey: ['categories', user?.id] })
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['categories', scopeKey] })
 
   const createCategory = useMutation({
     mutationFn: async (input: {
@@ -58,19 +55,19 @@ export function useCategories() {
       plan_group: PlanGroup
     }) => {
       if (!user) throw new Error('로그인이 필요합니다')
-      // 같은 부모의 마지막 순서 다음에 추가
       const siblings = categories.filter(c => c.parent_id === input.parent_id)
       const nextOrder = siblings.reduce((m, c) => Math.max(m, c.display_order), 0) + 1
 
       const { data, error } = await supabase
         .from('categories')
         .insert({
-          user_id: user.id,
+          ...insertScope,
           parent_id: input.parent_id,
           name: input.name.trim(),
           type: input.type,
           plan_group: input.plan_group,
           display_order: nextOrder,
+          is_default: false,
         })
         .select()
         .single()

@@ -195,11 +195,14 @@ export type PlanGroup = '근로수익' | '금융수익' | '고정비용' | '유�
 export interface Category {
   id: UUID
   user_id: UUID
+  household_id?: UUID | null
   parent_id: UUID | null
   name: string
   type: TransactionType
   plan_group: PlanGroup | null
   display_order: number
+  /** 가입/그룹 생성 시 심어진 항목. 화면에서 추가한 항목은 false. */
+  is_default?: boolean
 }
 
 // ─── 거래 ────────────────────────────────────────────────────────────────────

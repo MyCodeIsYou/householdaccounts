@@ -52,6 +52,30 @@ const THEMES: ThemeOption[] = [
       accent: '#d4a84a',
     },
   },
+  {
+    id: 'cyber',
+    name: '사이버 (미래)',
+    description: '어두운 격자 위 청록 발광. 본문은 밝은 고딕으로 읽기 쉽게 유지',
+    preview: {
+      bg: '#0b1220',
+      primary: '#22d3ee',
+      card: '#121a2b',
+      text: '#e7eef8',
+      accent: '#e879f9',
+    },
+  },
+  {
+    id: 'log',
+    name: '시스템 로그',
+    description: '검은 터미널에 찍히는 로그. 고정폭, 회색 본문, 정보·경고·오류만 색으로 구분',
+    preview: {
+      bg: '#0c0c0c',
+      primary: '#4fc1ff',
+      card: '#161616',
+      text: '#d4d4d4',
+      accent: '#f48771',
+    },
+  },
 ]
 
 export default function SettingsPage() {
@@ -79,7 +103,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-3xl space-y-6">
       <div className="bg-white rounded-2xl card-shadow p-6">
         <div className="flex items-center gap-2 mb-1">
           <Palette className="w-5 h-5 text-gray-500" />
@@ -89,7 +113,7 @@ export default function SettingsPage() {
           원하는 테마를 선택하세요. 변경 즉시 적용됩니다.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {THEMES.map(t => {
             const isSelected = theme === t.id
             return (
@@ -111,28 +135,56 @@ export default function SettingsPage() {
                 {/* 테마 미리보기 */}
                 <div
                   className="w-full h-24 rounded-xl mb-3 overflow-hidden relative"
-                  style={{ backgroundColor: t.preview.bg }}
+                  style={{
+                    backgroundColor: t.preview.bg,
+                    borderRadius: t.id === 'log' ? 0 : t.id === 'cyber' ? 6 : undefined,
+                    border: t.id === 'log' ? '1px solid #3a3a3a' : t.id === 'cyber' ? '1px solid rgba(34,211,238,0.6)' : undefined,
+                    boxShadow: t.id === 'cyber' ? '0 0 16px rgba(34,211,238,0.25)' : undefined,
+                  }}
                 >
-                  {/* 카드 */}
-                  <div
-                    className="absolute top-2 left-2 right-2 h-7 rounded-md flex items-center px-2 gap-1.5"
-                    style={{
-                      backgroundColor: t.preview.card,
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                    }}
-                  >
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.preview.primary }} />
-                    <div className="flex-1 h-1.5 rounded" style={{ backgroundColor: t.preview.text, opacity: 0.6 }} />
-                  </div>
-                  {/* 버튼 */}
-                  <div
-                    className="absolute bottom-2 left-2 h-5 w-12 rounded"
-                    style={{ backgroundColor: t.preview.primary }}
-                  />
-                  <div
-                    className="absolute bottom-2 left-16 h-5 w-8 rounded"
-                    style={{ backgroundColor: t.preview.accent }}
-                  />
+                  {t.id === 'log' ? (
+                    <div
+                      className="absolute inset-0 flex flex-col justify-center gap-1 px-2.5"
+                      style={{ fontFamily: "'Nanum Gothic Coding', ui-monospace, monospace" }}
+                    >
+                      <p className="truncate text-[10px] leading-tight">
+                        <span style={{ color: '#8a8a8a' }}>14:02:11 </span>
+                        <span style={{ color: '#4fc1ff' }}>INFO </span>
+                        <span style={{ color: '#d4d4d4' }}>수입 기록</span>
+                      </p>
+                      <p className="truncate text-[10px] leading-tight">
+                        <span style={{ color: '#8a8a8a' }}>14:02:18 </span>
+                        <span style={{ color: '#e1c16a' }}>WARN </span>
+                        <span style={{ color: '#d4d4d4' }}>예산 임박</span>
+                      </p>
+                      <p className="truncate text-[10px] leading-tight">
+                        <span style={{ color: '#8a8a8a' }}>14:02:26 </span>
+                        <span style={{ color: '#f48771' }}>ERR </span>
+                        <span style={{ color: '#d4d4d4' }}>지출 초과</span>
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div
+                        className="absolute top-2 left-2 right-2 h-7 rounded-md flex items-center px-2 gap-1.5"
+                        style={{
+                          backgroundColor: t.preview.card,
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                        }}
+                      >
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.preview.primary }} />
+                        <div className="flex-1 h-1.5 rounded" style={{ backgroundColor: t.preview.text, opacity: 0.6 }} />
+                      </div>
+                      <div
+                        className="absolute bottom-2 left-2 h-5 w-12 rounded"
+                        style={{ backgroundColor: t.preview.primary }}
+                      />
+                      <div
+                        className="absolute bottom-2 left-16 h-5 w-8 rounded"
+                        style={{ backgroundColor: t.preview.accent }}
+                      />
+                    </>
+                  )}
                 </div>
 
                 <p className="text-sm font-bold text-gray-900 mb-1">{t.name}</p>

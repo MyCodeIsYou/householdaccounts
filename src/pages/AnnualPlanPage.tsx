@@ -1,204 +1,249 @@
-import { useState } from 'react'
-import { useDragScroll } from '@/hooks/useDragScroll'
+import { useEffect, useState } from 'react'
 import { useAnnualPlan } from '@/hooks/useAnnualPlan'
 import { useCategories } from '@/hooks/useCategories'
-import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formatCurrency, parseAmountInput, getCurrentYearMonth } from '@/lib/utils'
-import { PLAN_GROUPS, MONTH_LABELS, MONTH_KEYS } from '@/lib/constants'
-import type { MonthKey } from '@/types'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { AnnualPlanDesktop } from '@/components/annual-plan/AnnualPlanDesktop'
+import { AnnualPlanMobile } from '@/components/annual-plan/AnnualPlanMobile'
+import { FillMonthsDialog } from '@/components/annual-plan/FillMonthsDialog'
+import { getCurrentYearMonth, unknownErrorMessage } from '@/lib/utils'
+import type { Category, MonthKey, PlanGroup } from '@/types'
 
-const { year: curYear } = getCurrentYearMonth()
+const { year: curYear, month: curMonth } = getCurrentYearMonth()
 
-interface EditingCell { categoryId: string; monthKey: MonthKey }
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia('(min-width: 768px)').matches)
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)')
+    const onChange = () => setIsDesktop(media.matches)
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [])
+  return isDesktop
+}
 
 export default function AnnualPlanPage() {
   const [year, setYear] = useState(curYear)
-  const { plans, actualMap, isLoading, upsertCell } = useAnnualPlan(year)
-  const { categories } = useCategories()
+  const [selectedMonth, setSelectedMonth] = useState(curMonth)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
-  const [editingCell, setEditingCell] = useState<EditingCell | null>(null)
-  const [editValue, setEditValue] = useState('')
-  const dragScrollRef = useDragScroll<HTMLDivElement>()
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [addingGroup, setAddingGroup] = useState<PlanGroup | null>(null)
+  const [addValue, setAddValue] = useState('')
+  const [fillCategory, setFillCategory] = useState<Category | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<Category | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const isDesktop = useIsDesktop()
+
+  const { planByCategory, actualMap, isLoading, upsertCell, upsertMonths } = useAnnualPlan(year)
+  const { categories, isLoading: categoriesLoading, createCategory, renameCategory, deleteCategory } = useCategories()
 
   const years = Array.from({ length: 5 }, (_, i) => curYear - 2 + i)
+  const fromLabel = year === curYear ? '이번 달부터 12월' : '선택한 달부터 12월'
+  const defaultStartMonth = year === curYear ? curMonth : selectedMonth
 
-  function getPlanValue(categoryId: string, monthKey: MonthKey): number {
-    return plans.find(p => p.category_id === categoryId)?.[monthKey] ?? 0
+  function getPlan(categoryId: string, monthKey: MonthKey): number {
+    return planByCategory.get(categoryId)?.[monthKey] ?? 0
   }
 
-  function getActualValue(categoryId: string, monthKey: MonthKey): number {
+  function getActual(categoryId: string, monthKey: MonthKey): number {
     return actualMap.get(categoryId)?.[monthKey] ?? 0
   }
 
-  function openEdit(categoryId: string, monthKey: MonthKey) {
-    const current = getPlanValue(categoryId, monthKey)
-    setEditingCell({ categoryId, monthKey })
-    setEditValue(String(current === 0 ? '' : current))
+  function changeYear(next: number) {
+    setYear(next)
+    setSelectedMonth(next === curYear ? curMonth : 1)
   }
 
-  async function commitEdit() {
-    if (!editingCell) return
-    await upsertCell.mutateAsync({
-      categoryId: editingCell.categoryId,
-      monthKey: editingCell.monthKey,
-      value: parseAmountInput(editValue),
-    })
-    setEditingCell(null)
+  async function saveCell(categoryId: string, monthKey: MonthKey, value: number) {
+    try {
+      await upsertCell.mutateAsync({ categoryId, monthKey, value })
+    } catch (error: unknown) {
+      setErrorMsg(unknownErrorMessage(error, '계획 저장에 실패했습니다.'))
+    }
   }
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-64 text-muted-foreground">로딩 중...</div>
+  async function applyMonths(categoryId: string, months: Partial<Record<MonthKey, number>>) {
+    try {
+      await upsertMonths.mutateAsync({ categoryId, months })
+      setFillCategory(null)
+    } catch (error: unknown) {
+      setErrorMsg(unknownErrorMessage(error, '계획 저장에 실패했습니다.'))
+    }
+  }
+
+  function startRename(category: Category) {
+    setAddingGroup(null)
+    setRenamingId(category.id)
+    setRenameValue(category.name)
+  }
+
+  function cancelRename() {
+    setRenamingId(null)
+    setRenameValue('')
+  }
+
+  async function commitRename() {
+    if (!renamingId) return
+    const trimmed = renameValue.trim()
+    if (!trimmed) { cancelRename(); return }
+    try {
+      await renameCategory.mutateAsync({ id: renamingId, name: trimmed })
+      cancelRename()
+    } catch (error: unknown) {
+      setErrorMsg(unknownErrorMessage(error, '이름 변경에 실패했습니다.'))
+    }
+  }
+
+  function startAdd(group: PlanGroup) {
+    cancelRename()
+    setAddingGroup(group)
+    setAddValue('')
+  }
+
+  function cancelAdd() {
+    setAddingGroup(null)
+    setAddValue('')
+  }
+
+  async function commitAdd() {
+    if (!addingGroup) return
+    const trimmed = addValue.trim()
+    if (!trimmed) { cancelAdd(); return }
+    const parent = categories.find(c => c.parent_id === null && c.plan_group === addingGroup)
+    if (!parent) {
+      setErrorMsg(`상위 그룹 "${addingGroup}"이 없습니다.`)
+      return
+    }
+    try {
+      await createCategory.mutateAsync({
+        name: trimmed,
+        parent_id: parent.id,
+        type: parent.type,
+        plan_group: addingGroup,
+      })
+      cancelAdd()
+    } catch (error: unknown) {
+      setErrorMsg(unknownErrorMessage(error, '항목 추가에 실패했습니다.'))
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirmDelete) return
+    try {
+      await deleteCategory.mutateAsync(confirmDelete.id)
+      setConfirmDelete(null)
+    } catch (error: unknown) {
+      setConfirmDelete(null)
+      setErrorMsg(unknownErrorMessage(error, '삭제에 실패했습니다.'))
+    }
+  }
+
+  if (isLoading || categoriesLoading) {
+    return <div className="flex h-64 items-center justify-center text-muted-foreground">로딩 중...</div>
+  }
+
+  const shared = {
+    year,
+    curYear,
+    curMonth,
+    categories,
+    collapsed,
+    onToggleGroup: (group: string) => setCollapsed(c => ({ ...c, [group]: !c[group] })),
+    getPlan,
+    getActual,
+    onSaveCell: saveCell,
+    renamingId,
+    renameValue,
+    onRenameValue: setRenameValue,
+    onStartRename: startRename,
+    onCommitRename: commitRename,
+    onCancelRename: cancelRename,
+    onRequestDelete: setConfirmDelete,
+    addingGroup,
+    addValue,
+    onAddValue: setAddValue,
+    onStartAdd: startAdd,
+    onCommitAdd: commitAdd,
+    onCancelAdd: cancelAdd,
+    addPending: createCategory.isPending,
   }
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl card-shadow p-4 flex items-center gap-3">
-        <Select value={String(year)} onValueChange={v => setYear(Number(v))}>
+      <div className="flex flex-col gap-2 rounded-2xl bg-white p-4 card-shadow sm:flex-row sm:items-center">
+        <Select value={String(year)} onValueChange={v => changeYear(Number(v))}>
           <SelectTrigger className="w-28 rounded-xl"><SelectValue /></SelectTrigger>
           <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}년</SelectItem>)}</SelectContent>
         </Select>
-        <span className="text-sm text-gray-400">셀 클릭 시 계획 금액 입력. 실적은 자동 집계됩니다.</span>
+        <span className="text-sm text-gray-400">
+          계획은 직접 입력하고, 반복으로 여러 달을 채웁니다. 실적은 거래 합계입니다. 항목은 이 화면에서 추가할 수 있습니다.
+        </span>
       </div>
 
-      <div className="bg-white rounded-2xl card-shadow overflow-hidden">
-        <div className="overflow-x-auto" ref={dragScrollRef}>
-          <table className="text-sm border-collapse" style={{ minWidth: '1900px' }}>
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap sticky left-0 bg-gray-50 z-10" style={{ minWidth: '140px' }}>항목</th>
-                <th className="px-3 py-3 text-center text-xs text-gray-400 whitespace-nowrap" style={{ minWidth: '60px' }}>구분</th>
-                {MONTH_LABELS.map(m => (
-                  <th key={m} className="px-3 py-3 text-center text-xs font-semibold text-gray-500 whitespace-nowrap" style={{ minWidth: '135px' }}>{m}</th>
-                ))}
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap" style={{ minWidth: '130px' }}>합계</th>
-              </tr>
-            </thead>
-            <tbody>
-              {PLAN_GROUPS.map(group => {
-                const isIncome = group === '근로수익' || group === '금융수익'
-                const groupCategories = categories.filter(c => c.plan_group === group && c.parent_id !== null)
+      {isDesktop ? (
+        <AnnualPlanDesktop
+          {...shared}
+          selectedMonth={selectedMonth}
+          onSelectMonth={setSelectedMonth}
+          onOpenFill={setFillCategory}
+        />
+      ) : (
+        <AnnualPlanMobile
+          {...shared}
+          selectedMonth={selectedMonth}
+          onSelectMonth={setSelectedMonth}
+          onApplyMonths={applyMonths}
+          fillPending={upsertMonths.isPending}
+        />
+      )}
 
-                const groupPlanTotals = MONTH_KEYS.map(mk =>
-                  groupCategories.reduce((s, c) => s + getPlanValue(c.id, mk), 0)
-                )
-                const groupActualTotals = MONTH_KEYS.map(mk =>
-                  groupCategories.reduce((s, c) => s + getActualValue(c.id, mk), 0)
-                )
-
-                const isCollapsed = collapsed[group]
-                const groupColor = isIncome ? 'bg-emerald-50/80 border-emerald-100' : 'bg-rose-50/60 border-rose-100'
-                const groupTextColor = isIncome ? 'text-emerald-700' : 'text-rose-700'
-
-                return (
-                  <>
-                    {/* 그룹 헤더 행 */}
-                    <tr key={`${group}-header`} className={`${groupColor} border-y font-semibold`}>
-                      <td
-                        className={`px-3 py-2.5 sticky left-0 z-10 ${groupColor} cursor-pointer select-none`}
-                        onClick={() => setCollapsed(c => ({ ...c, [group]: !c[group] }))}
-                      >
-                        <span className={`flex items-center gap-1 ${groupTextColor}`}>
-                          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                          {group}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-center text-xs text-gray-400 whitespace-nowrap">계획</td>
-                      {groupPlanTotals.map((v, i) => (
-                        <td key={i} className={`px-3 py-2.5 text-right text-xs whitespace-nowrap ${groupTextColor}`}>{v > 0 ? formatCurrency(v) : '—'}</td>
-                      ))}
-                      <td className={`px-4 py-2.5 text-right text-xs font-bold whitespace-nowrap ${groupTextColor}`}>
-                        {formatCurrency(groupPlanTotals.reduce((s, v) => s + v, 0))}
-                      </td>
-                    </tr>
-                    <tr key={`${group}-actual-header`} className={`${groupColor} border-b`}>
-                      <td className={`sticky left-0 z-10 ${groupColor}`} />
-                      <td className="px-3 py-1.5 text-center text-xs text-gray-400 whitespace-nowrap">실적</td>
-                      {groupActualTotals.map((v, i) => (
-                        <td key={i} className="px-3 py-1.5 text-right text-xs text-indigo-600 whitespace-nowrap">{v > 0 ? formatCurrency(v) : '—'}</td>
-                      ))}
-                      <td className="px-4 py-1.5 text-right text-xs text-indigo-600 whitespace-nowrap">
-                        {formatCurrency(groupActualTotals.reduce((s, v) => s + v, 0))}
-                      </td>
-                    </tr>
-
-                    {/* 카테고리별 행 */}
-                    {!isCollapsed && groupCategories.map(cat => {
-                      const planRow = MONTH_KEYS.map(mk => getPlanValue(cat.id, mk))
-                      const actualRow = MONTH_KEYS.map(mk => getActualValue(cat.id, mk))
-                      const planTotal = planRow.reduce((s, v) => s + v, 0)
-                      const actualTotal = actualRow.reduce((s, v) => s + v, 0)
-
-                      return (
-                        <>
-                          <tr key={`${cat.id}-plan`} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-1.5 pl-8 sticky left-0 z-10 bg-white hover:bg-gray-50 text-sm text-gray-700 whitespace-nowrap">{cat.name}</td>
-                            <td className="px-3 py-1.5 text-center text-xs text-gray-400 whitespace-nowrap">계획</td>
-                            {MONTH_KEYS.map((mk, i) => {
-                              const isEditing = editingCell?.categoryId === cat.id && editingCell.monthKey === mk
-                              return (
-                                <td
-                                  key={mk}
-                                  className="px-3 py-1.5 text-right text-xs whitespace-nowrap cursor-pointer hover:bg-indigo-50 transition-colors rounded"
-                                  onClick={() => openEdit(cat.id, mk)}
-                                >
-                                  {isEditing ? (
-                                    <Input
-                                      autoFocus
-                                      className="h-6 text-xs p-1 w-full rounded-lg"
-                                      value={editValue}
-                                      onChange={e => setEditValue(e.target.value)}
-                                      onBlur={commitEdit}
-                                      onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingCell(null) }}
-                                      onClick={e => e.stopPropagation()}
-                                    />
-                                  ) : (
-                                    <span className={planRow[i] > 0 ? 'text-gray-700' : 'text-gray-300'}>
-                                      {planRow[i] > 0 ? formatCurrency(planRow[i]) : '—'}
-                                    </span>
-                                  )}
-                                </td>
-                              )
-                            })}
-                            <td className="px-4 py-1.5 text-right text-xs font-medium text-gray-600 whitespace-nowrap">
-                              {planTotal > 0 ? formatCurrency(planTotal) : '—'}
-                            </td>
-                          </tr>
-                          <tr key={`${cat.id}-actual`} className="border-b border-gray-100 bg-gray-50/40">
-                            <td className="sticky left-0 z-10 bg-gray-50/40" />
-                            <td className="px-3 py-1 text-center text-xs text-gray-400 whitespace-nowrap">실적</td>
-                            {MONTH_KEYS.map((mk, i) => {
-                              const plan = planRow[i]
-                              const actual = actualRow[i]
-                              const diff = isIncome ? actual - plan : plan - actual
-                              const colorClass = actual === 0 ? 'text-gray-300' : diff >= 0 ? 'text-emerald-600' : 'text-rose-500'
-                              return (
-                                <td key={mk} className={`px-3 py-1 text-right text-xs whitespace-nowrap ${colorClass}`}>
-                                  {actual > 0 ? formatCurrency(actual) : '—'}
-                                </td>
-                              )
-                            })}
-                            <td className={`px-4 py-1 text-right text-xs font-medium whitespace-nowrap ${actualTotal > 0 ? 'text-indigo-600' : 'text-gray-300'}`}>
-                              {actualTotal > 0 ? formatCurrency(actualTotal) : '—'}
-                            </td>
-                          </tr>
-                        </>
-                      )
-                    })}
-                  </>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="bg-indigo-50 rounded-2xl px-5 py-3 border border-indigo-100">
+      <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-5 py-3">
         <p className="text-xs text-indigo-600">
-          셀을 클릭하여 계획 금액을 입력하세요. Enter 또는 셀 밖 클릭 시 저장됩니다. 실적은 수입/지출 내역에서 자동 집계됩니다.
+          기본 항목은 처음 만들어질 때 들어오고, 추가 항목은 여기서 만든 것입니다. 거래나 고정비에 쓰인 항목은 삭제되지 않습니다.
         </p>
       </div>
+
+      <FillMonthsDialog
+        open={!!fillCategory}
+        categoryName={fillCategory?.name ?? ''}
+        defaultMode="all"
+        defaultStartMonth={defaultStartMonth}
+        fromLabel={fromLabel}
+        pending={upsertMonths.isPending}
+        onClose={() => setFillCategory(null)}
+        onApply={months => { if (fillCategory) void applyMonths(fillCategory.id, months) }}
+      />
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={open => { if (!open) setConfirmDelete(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>'{confirmDelete?.name}' 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              이 항목을 삭제하면 연간 계획 숫자도 함께 지워집니다. 거래나 고정비에 쓰인 항목은 삭제되지 않습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-rose-600 hover:bg-rose-700">삭제</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!errorMsg} onOpenChange={open => { if (!open) setErrorMsg(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>처리 실패</AlertDialogTitle>
+            <AlertDialogDescription>{errorMsg}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setErrorMsg(null)}>확인</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

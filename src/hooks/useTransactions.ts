@@ -56,6 +56,7 @@ export function useTransactions(filters: TransactionFilters = {}) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['monthly-summary'] })
+      qc.invalidateQueries({ queryKey: ['annual-plan-actual'] })
     },
   })
 
@@ -70,6 +71,7 @@ export function useTransactions(filters: TransactionFilters = {}) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['monthly-summary'] })
+      qc.invalidateQueries({ queryKey: ['annual-plan-actual'] })
     },
   })
 
@@ -81,6 +83,7 @@ export function useTransactions(filters: TransactionFilters = {}) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['monthly-summary'] })
+      qc.invalidateQueries({ queryKey: ['annual-plan-actual'] })
     },
   })
 
@@ -92,6 +95,7 @@ export function useTransactions(filters: TransactionFilters = {}) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['transactions'] })
       qc.invalidateQueries({ queryKey: ['monthly-summary'] })
+      qc.invalidateQueries({ queryKey: ['annual-plan-actual'] })
     },
   })
 

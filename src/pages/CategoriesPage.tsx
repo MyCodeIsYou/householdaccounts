@@ -7,6 +7,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { PLAN_GROUPS } from '@/lib/constants'
+import { unknownErrorMessage } from '@/lib/utils'
+import { CategoryOriginBadge } from '@/components/CategoryOriginBadge'
 import type { Category, PlanGroup } from '@/types'
 import { Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 
@@ -63,8 +65,7 @@ export default function CategoriesPage() {
       await renameCategory.mutateAsync({ id: editingId, name: trimmed })
       cancelEdit()
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '이름 변경 실패'
-      setErrorMsg(msg)
+      setErrorMsg(unknownErrorMessage(e, '이름 변경 실패'))
     }
   }
 
@@ -94,8 +95,7 @@ export default function CategoriesPage() {
       })
       cancelAdd()
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '추가 실패'
-      setErrorMsg(msg)
+      setErrorMsg(unknownErrorMessage(e, '추가 실패'))
     }
   }
 
@@ -105,8 +105,7 @@ export default function CategoriesPage() {
       await deleteCategory.mutateAsync(confirmDelete.id)
       setConfirmDelete(null)
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '삭제 실패'
-      setErrorMsg(msg)
+      setErrorMsg(unknownErrorMessage(e, '삭제 실패'))
       setConfirmDelete(null)
     }
   }
@@ -115,9 +114,9 @@ export default function CategoriesPage() {
     <div className="space-y-4">
       <div className="bg-white rounded-2xl card-shadow p-4">
         <p className="text-sm text-gray-500">
-          수입/지출 항목을 자유롭게 추가·이름 변경·삭제할 수 있습니다.
-          단, <strong>이미 거래에 사용 중인 항목은 삭제할 수 없습니다.</strong>
-          상위 4개 그룹(근로수익/금융수익/고정비용/유동비용)은 변경할 수 없습니다.
+          기본 항목은 처음 만들어질 때 함께 들어오고, 추가 항목은 직접 만든 것입니다.
+          이름 변경은 둘 다 가능합니다. <strong>거래나 고정비에 쓰인 항목은 삭제할 수 없습니다.</strong>
+          상위 4개 그룹은 바꿀 수 없습니다. 개인/그룹 전환에 따라 목록이 달라집니다.
         </p>
       </div>
 
@@ -184,7 +183,10 @@ export default function CategoriesPage() {
                         </>
                       ) : (
                         <>
-                          <span className="flex-1 text-sm text-gray-700">{cat.name}</span>
+                          <span className="flex flex-1 items-center gap-2 text-sm text-gray-700">
+                            {cat.name}
+                            <CategoryOriginBadge isDefault={cat.is_default} />
+                          </span>
                           <Button
                             type="button"
                             size="icon"

@@ -46,3 +46,12 @@ export function getCurrentYearMonth(): { year: number; month: number } {
 export function parseAmountInput(value: string): number {
   return parseInt(value.replace(/[^0-9]/g, ''), 10) || 0
 }
+
+export function unknownErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) return error.message
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message?: unknown }).message
+    if (typeof message === 'string' && message.trim()) return message
+  }
+  return fallback
+}

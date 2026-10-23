@@ -1,8 +1,13 @@
+import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useHouseholdFilter } from '@/hooks/useHouseholdFilter'
 import type { AnnualPlan, MonthKey } from '@/types'
 import { MONTH_KEYS } from '@/lib/constants'
+
+function emptyMonths(): Record<MonthKey, number> {
+  return Object.fromEntries(MONTH_KEYS.map(k => [k, 0])) as Record<MonthKey, number>
+}
 
 export function useAnnualPlan(year: number) {
   const { user, scopeKey, applyFilter, insertScope } = useHouseholdFilter()
@@ -21,8 +26,7 @@ export function useAnnualPlan(year: number) {
     enabled: !!user,
   })
 
-  // 실적: transactions에서 연도별 카테고리+월 집계
-  // subcategory_id 우선 사용 (연간 계획표는 하위 카테고리 기준)
+  // 실적: transactions에서 연도별 하위 카테고리+월 집계. 저장하지 않는다.
   const actualQuery = useQuery({
     queryKey: ['annual-plan-actual', scopeKey, year],
     queryFn: async () => {
@@ -39,19 +43,51 @@ export function useAnnualPlan(year: number) {
     enabled: !!user,
   })
 
-  // category_id → MonthKey → amount 집계 맵
-  // subcategory_id가 있으면 하위 카테고리 기준, 없으면 대분류 기준
-  const actualMap = new Map<string, Record<MonthKey, number>>()
-  for (const row of actualQuery.data ?? []) {
-    const catId = row.subcategory_id ?? row.category_id
-    if (!catId) continue
-    const monthIdx = parseInt(row.txn_date.slice(5, 7), 10) - 1
-    const key = MONTH_KEYS[monthIdx] as MonthKey
-    if (!actualMap.has(catId)) {
-      actualMap.set(catId, Object.fromEntries(MONTH_KEYS.map(k => [k, 0])) as Record<MonthKey, number>)
+  const actualMap = useMemo(() => {
+    const map = new Map<string, Record<MonthKey, number>>()
+    for (const row of actualQuery.data ?? []) {
+      const catId = row.subcategory_id ?? row.category_id
+      if (!catId) continue
+      const monthIdx = parseInt(row.txn_date.slice(5, 7), 10) - 1
+      const key = MONTH_KEYS[monthIdx] as MonthKey
+      if (!map.has(catId)) map.set(catId, emptyMonths())
+      map.get(catId)![key] += row.amount
     }
-    actualMap.get(catId)![key] += row.amount
+    return map
+  }, [actualQuery.data])
+
+  const planByCategory = useMemo(() => {
+    const map = new Map<string, AnnualPlan>()
+    for (const plan of planQuery.data ?? []) map.set(plan.category_id, plan)
+    return map
+  }, [planQuery.data])
+
+  async function writeMonths(categoryId: string, months: Partial<Record<MonthKey, number>>) {
+    if (!user) throw new Error('로그인이 필요합니다')
+    const { data: existing, error: findErr } = await applyFilter(
+      supabase.from('annual_plan').select('id')
+    )
+      .eq('plan_year', year)
+      .eq('category_id', categoryId)
+      .maybeSingle()
+    if (findErr) throw findErr
+    if (existing) {
+      const { error } = await supabase.from('annual_plan').update(months).eq('id', existing.id)
+      if (error) throw error
+      return
+    }
+    const newRow: Partial<AnnualPlan> = {
+      ...insertScope,
+      plan_year: year,
+      category_id: categoryId,
+      ...emptyMonths(),
+      ...months,
+    }
+    const { error } = await supabase.from('annual_plan').insert(newRow)
+    if (error) throw error
   }
+
+  const invalidatePlan = () => qc.invalidateQueries({ queryKey: ['annual-plan', scopeKey, year] })
 
   const upsertCell = useMutation({
     mutationFn: async ({
@@ -63,33 +99,30 @@ export function useAnnualPlan(year: number) {
       monthKey: MonthKey
       value: number
     }) => {
-      if (!user) throw new Error('로그인이 필요합니다')
-      const existing = planQuery.data?.find(p => p.category_id === categoryId)
-      if (existing) {
-        const { error } = await supabase
-          .from('annual_plan')
-          .update({ [monthKey]: value })
-          .eq('id', existing.id)
-        if (error) throw error
-      } else {
-        const newRow: Partial<AnnualPlan> = {
-          ...insertScope,
-          plan_year: year,
-          category_id: categoryId,
-          ...Object.fromEntries(MONTH_KEYS.map(k => [k, 0])),
-          [monthKey]: value,
-        }
-        const { error } = await supabase.from('annual_plan').insert(newRow)
-        if (error) throw error
-      }
+      await writeMonths(categoryId, { [monthKey]: value })
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['annual-plan', scopeKey, year] }),
+    onSuccess: invalidatePlan,
+  })
+
+  const upsertMonths = useMutation({
+    mutationFn: async ({
+      categoryId,
+      months,
+    }: {
+      categoryId: string
+      months: Partial<Record<MonthKey, number>>
+    }) => {
+      await writeMonths(categoryId, months)
+    },
+    onSuccess: invalidatePlan,
   })
 
   return {
     plans: planQuery.data ?? [],
+    planByCategory,
     actualMap,
     isLoading: planQuery.isLoading || actualQuery.isLoading,
     upsertCell,
+    upsertMonths,
   }
 }
