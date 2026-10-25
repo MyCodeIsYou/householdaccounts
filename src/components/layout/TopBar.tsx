@@ -10,6 +10,7 @@ const pageTitles: Record<string, { title: string; desc: string }> = {
   '/liabilities':     { title: '부채 관리',       desc: '대출 및 부채 현황 · 순자산 계산' },
   '/asset-chart':     { title: '자산 변화 그래프', desc: '날짜별 총 자산 추이' },
   '/annual-plan':     { title: '연간 자금 계획표', desc: '월별 수입·지출 계획 vs 실적' },
+  '/schedules':       { title: '일정 관리',       desc: '다가올 일정과 월별 일정' },
   '/transactions':    { title: '수입/지출 내역',  desc: '거래 내역 입력 및 조회' },
   '/monthly-summary': { title: '월별 합계',       desc: '월별 수입·지출·잔액 집계' },
   '/allowance':       { title: '용돈 관리',        desc: '용돈 지출 현황' },

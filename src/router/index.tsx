@@ -8,6 +8,7 @@ import AccountsPage from '@/pages/AccountsPage'
 import LiabilitiesPage from '@/pages/LiabilitiesPage'
 import AssetChartPage from '@/pages/AssetChartPage'
 import AnnualPlanPage from '@/pages/AnnualPlanPage'
+import SchedulePage from '@/pages/SchedulePage'
 import TransactionsPage from '@/pages/TransactionsPage'
 import MonthlySummaryPage from '@/pages/MonthlySummaryPage'
 import AllowancePage from '@/pages/AllowancePage'
@@ -71,6 +72,7 @@ export default function AppRouter() {
           <Route path="liabilities" element={<LiabilitiesPage />} />
           <Route path="asset-chart" element={<AssetChartPage />} />
           <Route path="annual-plan" element={<AnnualPlanPage />} />
+          <Route path="schedules" element={<SchedulePage />} />
           <Route path="transactions" element={<TransactionsPage />} />
           <Route path="monthly-summary" element={<MonthlySummaryPage />} />
           <Route path="allowance" element={<AllowancePage />} />

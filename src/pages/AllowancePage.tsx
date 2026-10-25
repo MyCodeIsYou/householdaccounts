@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useTransactions } from '@/hooks/useTransactions'
-import { useMonthlySummary } from '@/hooks/useMonthlySummary'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -17,18 +16,20 @@ export default function AllowancePage() {
   const [year, setYear] = useState(curYear)
   const [month, setMonth] = useState(curMonth)
 
-  const { transactions } = useTransactions({ year, month, is_allowance: true })
-  const { data: monthlySummary = [] } = useMonthlySummary(year)
+  const { transactions: yearAllowance } = useTransactions({ year, is_allowance: true })
 
   const years = Array.from({ length: 5 }, (_, i) => curYear - 2 + i)
   const months = Array.from({ length: 12 }, (_, i) => i + 1)
 
+  const transactions = yearAllowance.filter(t => Number(t.txn_date.slice(5, 7)) === month)
   const totalAllowance = transactions.reduce((s, t) => s + t.amount, 0)
 
-  // 연간 용돈 월별 집계
-  const chartData = monthlySummary.map((_, idx) => {
+  const chartData = MONTH_LABELS.map((name, idx) => {
     const m = idx + 1
-    return { name: MONTH_LABELS[idx], amount: 0, month: m }
+    const amount = yearAllowance
+      .filter(t => Number(t.txn_date.slice(5, 7)) === m)
+      .reduce((s, t) => s + Number(t.amount), 0)
+    return { name, amount, month: m }
   })
 
   return (

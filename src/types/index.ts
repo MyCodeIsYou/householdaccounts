@@ -72,6 +72,7 @@ export interface MenuConfig {
   min_role: AppRole
   is_enabled: boolean
   display_order: number
+  parent_menu_key?: string | null
   updated_at: ISOTimestamp
 }
 
@@ -150,6 +151,36 @@ export interface TravelLog {
 
 export type TravelLogInsert = Omit<TravelLog, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 export type TravelLogUpdate = Partial<TravelLogInsert>
+
+// ─── 일정 ────────────────────────────────────────────────────────────────────
+export type Recurrence = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
+
+export interface Schedule {
+  id: UUID
+  user_id: UUID
+  household_id?: UUID | null
+  title: string
+  memo: string | null
+  start_date: ISODate
+  end_date: ISODate | null
+  start_time: string | null
+  end_time: string | null
+  recurrence: Recurrence
+  recurrence_until: ISODate | null
+  created_at: ISOTimestamp
+  updated_at: ISOTimestamp
+}
+
+export interface ScheduleWrite {
+  title: string
+  memo: string | null
+  start_date: ISODate
+  end_date: ISODate | null
+  start_time: string | null
+  end_time: string | null
+  recurrence: Recurrence
+  recurrence_until: ISODate | null
+}
 
 // ─── 은행/기관 ───────────────────────────────────────────────────────────────
 export interface BankInstitution {

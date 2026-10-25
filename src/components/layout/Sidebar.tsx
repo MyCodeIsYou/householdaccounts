@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Wallet, TrendingUp, TrendingDown, CalendarDays,
+  LayoutDashboard, Wallet, TrendingUp, TrendingDown, CalendarDays, CalendarClock,
   FileText, BarChart3, Gift, Lock, CreditCard, Tags,
   Users, ChevronDown, User, Check, Shield, Settings, MessageCircle,
   Calculator, DollarSign, LineChart, Map,
@@ -11,11 +11,12 @@ import {
 import { useAuth } from '@/context/AuthContext'
 import { useHousehold } from '@/context/HouseholdContext'
 import { useMenuConfigs } from '@/hooks/useMenuConfigs'
+import { childMenus, rootMenus } from '@/lib/menuTree'
 import type { AppRole } from '@/types'
 
 // 아이콘 이름 → Lucide 컴포넌트 매핑
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  LayoutDashboard, Wallet, TrendingUp, TrendingDown, CalendarDays,
+  LayoutDashboard, Wallet, TrendingUp, TrendingDown, CalendarDays, CalendarClock,
   FileText, BarChart3, Gift, Lock, CreditCard, Tags,
   Users, Shield, Settings, MessageCircle, LineChart, Map,
   Bot, Activity, Database,
@@ -28,6 +29,7 @@ const FALLBACK_MENUS = [
   { menu_key: 'liabilities',     label: '부채 관리',   path: '/liabilities',     icon_name: 'TrendingDown',    min_role: 'user' as AppRole, is_enabled: true, display_order: 3 },
   { menu_key: 'asset-chart',     label: '자산 변화',   path: '/asset-chart',     icon_name: 'TrendingUp',      min_role: 'user' as AppRole, is_enabled: true, display_order: 4 },
   { menu_key: 'annual-plan',     label: '연간 계획표', path: '/annual-plan',     icon_name: 'CalendarDays',    min_role: 'user' as AppRole, is_enabled: true, display_order: 4 },
+  { menu_key: 'schedules',       label: '일정 관리',   path: '/schedules',       icon_name: 'CalendarClock',   min_role: 'user' as AppRole, is_enabled: true, display_order: 14 },
   { menu_key: 'transactions',    label: '수입/지출',   path: '/transactions',    icon_name: 'FileText',        min_role: 'user' as AppRole, is_enabled: true, display_order: 5 },
   { menu_key: 'monthly-summary', label: '월별 합계',   path: '/monthly-summary', icon_name: 'BarChart3',       min_role: 'user' as AppRole, is_enabled: true, display_order: 6 },
   { menu_key: 'allowance',       label: '용돈 관리',   path: '/allowance',       icon_name: 'Gift',            min_role: 'user' as AppRole, is_enabled: true, display_order: 7 },
@@ -43,6 +45,48 @@ const FALLBACK_MENUS = [
 ]
 
 const ROLE_RANK: Record<AppRole, number> = { user: 0, admin: 1, super_admin: 2 }
+
+function MenuNavItem({ menu, nested, onClose }: {
+  menu: { path: string; icon_name: string; label: string }
+  nested?: boolean
+  onClose: () => void
+}) {
+  const Icon = ICON_MAP[menu.icon_name] ?? Wallet
+  return (
+    <NavLink
+      to={menu.path}
+      end={menu.path === '/'}
+      onClick={onClose}
+      className={({ isActive }) =>
+        cn(
+          'group flex items-center gap-3 px-3 rounded-lg font-medium transition-all duration-150',
+          nested ? 'py-2 text-[13px]' : 'py-2.5 text-sm',
+          isActive
+            ? 'bg-white/10 text-white'
+            : 'text-white/50 hover:bg-white/5 hover:text-white/80'
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <span className={cn(
+            'flex items-center justify-center rounded-md transition-all duration-150',
+            nested ? 'w-6 h-6' : 'w-7 h-7',
+            isActive
+              ? 'gradient-primary text-white shadow-lg shadow-indigo-500/30'
+              : 'text-white/40 group-hover:text-white/70'
+          )}>
+            <Icon className="h-3.5 w-3.5" />
+          </span>
+          <span className="flex-1">{menu.label}</span>
+          {isActive && (
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+          )}
+        </>
+      )}
+    </NavLink>
+  )
+}
 
 function HouseholdSwitcher() {
   const { activeHouseholdId, households, setActiveHousehold, isViewingAsAdmin } = useHousehold()
@@ -153,41 +197,19 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
         <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-3 pb-2 pt-1">
           메뉴
         </p>
-        {visibleMenus.map(menu => {
-          const Icon = ICON_MAP[menu.icon_name] ?? Wallet
-          const isEnd = menu.path === '/'
+        {rootMenus(visibleMenus).map(menu => {
+          const children = childMenus(visibleMenus, menu.menu_key)
           return (
-            <NavLink
-              key={menu.menu_key}
-              to={menu.path}
-              end={isEnd}
-              onClick={onClose}
-              className={({ isActive }) =>
-                cn(
-                  'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
-                  isActive
-                    ? 'bg-white/10 text-white'
-                    : 'text-white/50 hover:bg-white/5 hover:text-white/80'
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <span className={cn(
-                    'flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150',
-                    isActive
-                      ? 'gradient-primary text-white shadow-lg shadow-indigo-500/30'
-                      : 'text-white/40 group-hover:text-white/70'
-                  )}>
-                    <Icon className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="flex-1">{menu.label}</span>
-                  {isActive && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                  )}
-                </>
+            <div key={menu.menu_key}>
+              <MenuNavItem menu={menu} onClose={onClose} />
+              {children.length > 0 && (
+                <div className="ml-4 border-l border-white/10 pl-1 space-y-0.5">
+                  {children.map(child => (
+                    <MenuNavItem key={child.menu_key} menu={child} nested onClose={onClose} />
+                  ))}
+                </div>
               )}
-            </NavLink>
+            </div>
           )
         })}
 
